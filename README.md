@@ -188,7 +188,9 @@ source ~/.zshrc
 
 > [!IMPORTANT]
 > DO NOT cd into install-scripts directory as script will most likely to fail
+
 #### 🛠️ Optional system monitor scripts (cross-distro compatible)
+
 - These installer helpers will set up user-level services and install required packages automatically.
 - Works on Fedora, Arch, and other distributions using standard tools.
 - Re-run any time from the repo root (do not `cd` into `install-scripts`).
@@ -206,7 +208,7 @@ source ~/.zshrc
   - Detects sensors (runs `sudo sensors-detect --auto` once)
   - Creates: `~/.config/hypr/scripts/temp-monitor.sh` and user service `temp-monitor.service`
   - Manage: `systemctl --user status|start|stop temp-monitor`
-> Packages above are installed by the respective installer scripts; no manual action is required. If you prefer package pre-install via the main package list, ensure `acpi`, `lm_sensors`, and `libnotify` are present in your setup.
+    > Packages above are installed by the respective installer scripts; no manual action is required. If you prefer package pre-install via the main package list, ensure `acpi`, `lm_sensors`, and `libnotify` are present in your setup.
 
 #### 🛣️ Roadmap:
 
@@ -274,24 +276,6 @@ env = WLR_RENDERER_ALLOW_SOFTWARE,1
 
 - Subscribe to my Youtube Channel [YouTube](https://www.youtube.com/@Ja.KooLit)
 
-- you can also give support through coffee's or btc 😊
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/jakoolit)
-
-or
-
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/JaKooLit)
-
-Or you can donate cryto on my btc wallet :)
-
-> 1N3MeV2dsX6gQB42HXU6MF2hAix1mqjo8i
-
-![Bitcoin](https://github.com/user-attachments/assets/7ed32f8f-c499-46f0-a53c-3f6fbd343699)
-
 #### 📹 Youtube videos (Click to view and watch the playlist) 📹
 
 [![Youtube Playlist Thumbnail](https://raw.githubusercontent.com/JaKooLit/screenshots/main/Youtube.png)](https://youtube.com/playlist?list=PLDtGd5Fw5_GjXCznR0BzCJJDIQSZJRbxx&si=iaNjLulFdsZ6AV-t)
-
-## 🥰🥰 💖💖 👍👍👍
-
-[![Stargazers over time](https://starchart.cc/JaKooLit/Arch-Hyprland.svg?variant=adaptive)](https://starchart.cc/JaKooLit/Arch-Hyprland)
