@@ -30,6 +30,7 @@ hypr_package=(
   network-manager-applet
   pamixer
   pavucontrol
+  libpulse
   playerctl
   python-requests
   python-pyquery
