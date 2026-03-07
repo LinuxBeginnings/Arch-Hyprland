@@ -14,6 +14,7 @@ pipewire=(
     pipewire-audio
     pipewire-alsa
     pipewire-pulse
+    libpulse
     sof-firmware
 )
 
