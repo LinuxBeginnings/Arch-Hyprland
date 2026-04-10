@@ -1,0 +1,82 @@
+name: Feature Request
+description: Propose a concrete feature with clear goals and acceptance criteria.
+title: "[Enhancement]: "
+labels: ["enhancement"]
+assignees:
+  - LinuxBeginnings
+
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: Short feature summary
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What gap exists today? Be specific and outcome-focused.
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: The desired user-visible outcome.
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Concise plan, API sketch, or implementation notes.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Short notes on other approaches and why they were rejected.
+
+  - type: textarea
+    id: migration
+    attributes:
+      label: Backward compatibility / migration
+      description: Any breaking changes and how to handle them.
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Estimated effort
+      options:
+        - small
+        - medium
+        - large
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why this matters
+      description: Impact on performance, UX, maintainability, or security.
+
+  - type: dropdown
+    id: upstream
+    attributes:
+      label: Reported upstream?
+      description: "Is this feature request or discussion already present upstream?"
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+
+  - type: input
+    id: upstream_link
+    attributes:
+      label: Upstream link / discussion
+      description: Provide upstream issue/PR URL or reference, if available (optional).
+
+  - type: input
+    id: author
+    attributes:
+      label: Author
+      value: "Natalie Spiva <natalie@acreetionos.org>"

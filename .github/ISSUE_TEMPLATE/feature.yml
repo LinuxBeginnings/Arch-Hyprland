@@ -30,6 +30,22 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: upstream
+    attributes:
+      label: Reported upstream?
+      description: "Is this feature request or discussion already present upstream?"
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+
+  - type: input
+    id: upstream_link
+    attributes:
+      label: Upstream link / discussion
+      description: "Provide upstream issue/PR URL or reference, if available (optional)."
+
 
 
 

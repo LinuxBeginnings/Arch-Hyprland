@@ -81,3 +81,19 @@ body:
       label: install logs, images or videos
       description: |
         Anything that can help. Please always ATTACH and not paste them.
+
+  - type: dropdown
+    id: upstream
+    attributes:
+      label: Reported upstream?
+      description: "Is this issue already reported in the upstream project tracker?"
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+
+  - type: input
+    id: upstream_link
+    attributes:
+      label: Upstream link / issue
+      description: "Provide the upstream issue URL or reference, if available (optional)."
