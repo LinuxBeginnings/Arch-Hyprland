@@ -1,5 +1,5 @@
 name: Documentation update
-description: Propose a change to the project documentation wiki
+description: Propose a clear, actionable change to the project documentation or wiki. Provide rationale and a concise implementation suggestion.
 title: "[Documentation update]: "
 labels: ["documentation_update"]
 assignees:
@@ -9,22 +9,38 @@ body:
   - type: textarea
     id: desc
     attributes:
-      label: Description
-      description: "Provide a clear and concise description of the documentation update"
+      label: Summary
+      description: "Succinctly describe the documentation change you're proposing and the user-facing problem it addresses."
     validations:
       required: true
 
   - type: textarea
     id: repro
     attributes:
-      label: Proposed Solution
-      description: "Provide a clear and concise description of the updated documentation that you'd like to see added"
+      label: Proposed change
+      description: "Describe the specific content edits, new pages, or structural changes you suggest. Include snippets or markdown examples if helpful."
     validations:
       required: true
 
   - type: textarea
-    id: logs
+    id: attachments
     attributes:
-      label: install links, images or videos
+      label: Attachments
       description: |
-        Add any other information about the documentation update here. For example, you might include links to similar documentation in other projects, or screenshots or diagrams to help explain your idea
+        Include supporting material: links, screenshots, diagrams, example fixtures, or small sample files. Prefer attachments or links over long inline dumps.
+  
+  - type: dropdown
+    id: upstream
+    attributes:
+      label: Reported upstream?
+      description: "Has this been discussed or filed upstream already? (optional)"
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+
+  - type: input
+    id: upstream_link
+    attributes:
+      label: Upstream link / discussion
+      description: "Upstream issue/PR URL or reference (optional)."

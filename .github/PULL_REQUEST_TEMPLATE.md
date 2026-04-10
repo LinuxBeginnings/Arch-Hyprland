@@ -1,3 +1,43 @@
+<!-- Title format: `type: short imperative summary` e.g. `feat: add preset` -->
+## Summary
+
+One-line, imperative description of what this change does.
+
+## Motivation
+
+Be direct and decisive: why this change matters and the concrete outcome I expect.
+
+## What I changed
+
+- List of changed files, scripts, or behaviors (concise).
+- Call out any system-level effects (services, kernel modules, disk, etc.).
+
+## How I tested
+
+Provide exact commands and environment used to verify the change, with expected results.
+
+Example:
+
+```
+./install.sh --preset minimal
+systemctl --user start battery-monitor
+# expected: battery-monitor service active and notifications appearing
+```
+
+## Risks & Rollback
+
+- Known impact and how to revert (exact commands).
+
+## Checklist
+
+- [ ] Change runs on a fresh environment
+- [ ] End-to-end test performed where applicable
+- [ ] Documentation updated if required
+- [ ] Commits follow commit message guidelines
+- [ ] Contribution compatible with GPLv3
+
+---
+**Author:** Natalie Spiva <natalie@acreetionos.org>
 # Pull Request
 
 ## Description
