@@ -1,0 +1,86 @@
+name: Bug Report
+description: Report a reproducible problem — be concise and exact.
+title: "[Bug]: "
+labels: ["bug"]
+assignees:
+  - LinuxBeginnings
+
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: Short summary of the failure
+      placeholder: Short summary
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened (brief)
+      description: One-line failure statement.
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: |
+        List exact commands you ran, environment details (distro, package versions) and any special hardware notes (NVIDIA/Intel/AMD).
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: What should have happened.
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include exact error messages and relevant logs.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / output
+      description: Attach minimal logs or file paths (paste truncated output, not entire logs).
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0
+        - P1
+        - P2
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround (if any)
+      description: Describe any temporary mitigation.
+
+  - type: dropdown
+    id: upstream
+    attributes:
+      label: Reported upstream?
+      description: "Is this issue already reported in the upstream project tracker?"
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+
+  - type: input
+    id: upstream_link
+    attributes:
+      label: Upstream link / issue
+      description: Provide the upstream issue URL or reference, if available (optional).
+
+  - type: input
+    id: contact
+    attributes:
+      label: Contact
+      description: Who to contact for follow-up
+      value: "Natalie Spiva <natalie@acreetionos.org>"

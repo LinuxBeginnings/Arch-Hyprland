@@ -28,3 +28,19 @@ body:
       label: install links, images or videos
       description: |
         Add any other information about the documentation update here. For example, you might include links to similar documentation in other projects, or screenshots or diagrams to help explain your idea
+  
+    - type: dropdown
+      id: upstream
+      attributes:
+        label: Reported upstream?
+        description: "Is this documentation change already proposed upstream?"
+        options:
+          - "Yes"
+          - "No"
+          - "Not sure"
+  
+    - type: input
+      id: upstream_link
+      attributes:
+        label: Upstream link / discussion
+        description: "Provide upstream issue/PR URL or reference, if available (optional)."
