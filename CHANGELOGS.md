@@ -8,6 +8,8 @@
   ```bash
   sudo pacman -S qt5-declarative qt5-quickcontrols2 qt6-declarative qt6-quickcontrols2
   ```
+- Improved: Error handling in the `install.sh` script
+  - Thank you `@moukhtar22` for finding this and filing an issue
 
 ## Mar 2026
 

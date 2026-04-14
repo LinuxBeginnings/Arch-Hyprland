@@ -117,12 +117,15 @@ execute_script() {
     if [ -f "$script_path" ]; then
         chmod +x "$script_path"
         if [ -x "$script_path" ]; then
-            env "$script_path"
+            bash "$script_path"
+            return $?
         else
             echo "Failed to make script '$script' executable."
+            return 1
         fi
     else
         echo "Script '$script' not found in '$script_directory'."
+        return 1
     fi
 }
 
@@ -344,16 +347,16 @@ done
 printf "\n%.0s" {1..1}
 
 # Ensuring base-devel is installed
-execute_script "00-base.sh"
+execute_script "00-base.sh" || { echo "${ERROR:-[ERROR]} Base devel installation failed" | tee -a "$LOG"; exit 1; }
 sleep 1
-execute_script "pacman.sh"
+execute_script "pacman.sh" || { echo "${ERROR:-[ERROR]} Pacman setup failed" | tee -a "$LOG"; exit 1; }
 sleep 1
 
 # Execute AUR helper script after other installations if applicable
 if [ "$aur_helper" == "paru" ]; then
-    execute_script "paru.sh"
+    execute_script "paru.sh" || { echo "${ERROR:-[ERROR]} AUR helper (paru) installation failed" | tee -a "$LOG"; exit 1; }
 elif [ "$aur_helper" == "yay" ]; then
-    execute_script "yay.sh"
+    execute_script "yay.sh" || { echo "${ERROR:-[ERROR]} AUR helper (yay) installation failed" | tee -a "$LOG"; exit 1; }
 fi
 
 sleep 1
@@ -361,21 +364,21 @@ sleep 1
 # Run the Hyprland related scripts
 echo "${INFO} Installing ${SKY_BLUE}KooL Hyprland additional packages...${RESET}" | tee -a "$LOG"
 sleep 1
-execute_script "01-hypr-pkgs.sh"
+execute_script "01-hypr-pkgs.sh" || { echo "${ERROR:-[ERROR]} Hyprland packages installation failed" | tee -a "$LOG"; exit 1; }
 sleep 1
-execute_script "polkit-setup.sh"
+execute_script "polkit-setup.sh" || { echo "${ERROR:-[ERROR]} Polkit setup failed" | tee -a "$LOG"; exit 1; }
 
 echo "${INFO} Installing ${SKY_BLUE}pipewire and pipewire-audio...${RESET}" | tee -a "$LOG"
 sleep 1
-execute_script "pipewire.sh"
+execute_script "pipewire.sh" || { echo "${ERROR:-[ERROR]} Pipewire installation failed" | tee -a "$LOG"; exit 1; }
 
 echo "${INFO} Installing ${SKY_BLUE}necessary fonts...${RESET}" | tee -a "$LOG"
 sleep 1
-execute_script "fonts.sh"
+execute_script "fonts.sh" || { echo "${ERROR:-[ERROR]} Fonts installation failed" | tee -a "$LOG"; exit 1; }
 
 echo "${INFO} Installing ${SKY_BLUE}Hyprland...${RESET}"
 sleep 1
-execute_script "hyprland.sh"
+execute_script "hyprland.sh" || { echo "${ERROR:-[ERROR]} Hyprland installation failed" | tee -a "$LOG"; exit 1; }
 
 # Clean up the selected options (remove quotes and trim spaces)
 selected_options=$(echo "$selected_options" | tr -d '"' | tr -s ' ')
@@ -447,7 +450,7 @@ for option in "${options[@]}"; do
             ;;
         dots)
             echo "${INFO} Installing pre-configured ${SKY_BLUE}KooL Hyprland dotfiles...${RESET}" | tee -a "$LOG"
-            execute_script "dotfiles-main.sh"
+            execute_script "dotfiles-main.sh" || { echo "${ERROR:-[ERROR]} Dotfiles installation failed" | tee -a "$LOG"; exit 1; }
             ;;
         *)
             echo "Unknown option: $option" | tee -a "$LOG"
