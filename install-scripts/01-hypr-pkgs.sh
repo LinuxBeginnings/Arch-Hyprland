@@ -31,6 +31,7 @@ hypr_package=(
   jq
   kitty
   kvantum
+  kvantum-qt5
   libspng
   nano
   network-manager-applet
@@ -43,11 +44,9 @@ hypr_package=(
   qt5ct
   qt5-declarative
   qt5-quickcontrols2
-  qt-style-kvantum
   qt6ct
   qt6-declarative
   qt6-svg
-  qt6-style-kvantum
   rofi
   slurp
   swappy

@@ -12,6 +12,7 @@
 packages=(
   cliphist
   kvantum
+  kvantum-qt5
   qt5-declarative
   qt5-quickcontrols2
   qt6-declarative
