@@ -12,6 +12,9 @@
 packages=(
   cliphist
   kvantum
+  qt5-declarative
+  qt5-quickcontrols2
+  qt6-declarative
   rofi-wayland
   imagemagick
   swaync
