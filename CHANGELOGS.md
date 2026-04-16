@@ -12,6 +12,7 @@
   - Thank you `@moukhtar22` for finding this and filing an issue
 - Removed incorrect `qt` packages
   - Thank you `@moukhtar22` for finding this and filing an issue
+- Added `rsync` and `hyprsunset`
 
 ## Mar 2026
 
