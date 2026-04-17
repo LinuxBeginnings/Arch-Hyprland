@@ -18,83 +18,83 @@ Extra=(
 )
 
 hypr_package=(
-  #aylurs-gtk-shell
-  bc
-  cliphist
-  curl
-  grim
-  gvfs
-  gvfs-mtp
-  hyprpolkitagent
-  hyprsunset
-  imagemagick
-  inxi
-  jq
-  kitty
-  kvantum
-  kvantum-qt5
-  libspng
-  nano
-  network-manager-applet
-  pamixer
-  pavucontrol
-  libpulse
-  playerctl
-  python-requests
-  python-pyquery
-  qt5ct
-  qt5-declarative
-  qt5-quickcontrols2
-  qt6ct
-  qt6-declarative
-  qt6-svg
-  rofi
-  slurp
-  swappy
-  swaync
-  swww
-  unzip # needed later
-  uwsm  # In case someone selects USWM login
-  wallust
-  waybar
-  wget
-  wl-clipboard
-  wlogout
-  xfce-polkit
-  xdg-user-dirs
-  xdg-utils
-  yad
+        #aylurs-gtk-shell
+        bc
+        cliphist
+        curl
+        grim
+        gvfs
+        gvfs-mtp
+        hyprpolkitagent
+        hyprsunset
+        imagemagick
+        inxi
+        jq
+        kitty
+        kvantum
+        kvantum-qt5
+        libspng
+        nano
+        network-manager-applet
+        pamixer
+        pavucontrol
+        libpulse
+        playerctl
+        python-requests
+        python-pyquery
+        qt5ct
+        qt5-declarative
+        qt5-quickcontrols2
+        qt6ct
+        qt6-declarative
+        qt6-svg
+        rofi
+        slurp
+        swappy
+        swaync
+        awww
+        unzip # needed later
+        uwsm  # In case someone selects USWM login
+        wallust
+        waybar
+        wget
+        wl-clipboard
+        wlogout
+        xfce-polkit
+        xdg-user-dirs
+        xdg-utils
+        yad
 )
 
 # the following packages can be deleted. however, dotfiles may not work properly
 hypr_package_2=(
-  brightnessctl
-  btop
-  cava
-  loupe
-  fastfetch
-  gnome-system-monitor
-  mousepad
-  mpv
-  mpv-mpris
-  nvtop
-  nwg-look
-  nwg-displays
-  pacman-contrib
-  qalculate-gtk
-  yt-dlp
+        brightnessctl
+        btop
+        cava
+        loupe
+        fastfetch
+        gnome-system-monitor
+        mousepad
+        mpv
+        mpv-mpris
+        nvtop
+        nwg-look
+        nwg-displays
+        pacman-contrib
+        qalculate-gtk
+        yt-dlp
 )
 
 # List of packages to uninstall as it conflicts some packages
 uninstall=(
-  aylurs-gtk-shell
-  dunst
-  cachyos-hyprland-settings
-  mako
-  rofi
-  wallust-git
-  rofi-lbonn-wayland
-  rofi-lbonn-wayland-git
+        aylurs-gtk-shell
+        dunst
+        cachyos-hyprland-settings
+        mako
+        rofi
+        wallust-git
+        rofi-lbonn-wayland
+        rofi-lbonn-wayland-git
 )
 
 ## WARNING: DO NOT EDIT BEYOND THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING! ##
@@ -103,14 +103,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Change the working directory to the parent directory of the script
 PARENT_DIR="$SCRIPT_DIR/.."
 cd "$PARENT_DIR" || {
-  echo "${ERROR} Failed to change directory to $PARENT_DIR"
-  exit 1
+        echo "${ERROR} Failed to change directory to $PARENT_DIR"
+        exit 1
 }
 
 # Source the global functions script
 if ! source "$(dirname "$(readlink -f "$0")")/Global_functions.sh"; then
-  echo "Failed to source Global_functions.sh"
-  exit 1
+        echo "Failed to source Global_functions.sh"
+        exit 1
 fi
 
 # Set the name of the log file to include the current date and time
@@ -118,28 +118,28 @@ LOG="Install-Logs/install-$(date +%d-%H%M%S)_hypr-pkgs.log"
 # rofi v2.x presence check (do not remove if already on v2.x)
 skip_rofi_uninstall=false
 if pacman -Qi rofi &>/dev/null; then
-  rofi_version="$(pacman -Qi rofi | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
-  if [[ "${rofi_version%%.*}" == "2" ]]; then
-    skip_rofi_uninstall=true
-    echo -e "${INFO} rofi ${rofi_version} detected. Skipping uninstall of rofi."
-  fi
+        rofi_version="$(pacman -Qi rofi | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
+        if [[ "${rofi_version%%.*}" == "2" ]]; then
+                skip_rofi_uninstall=true
+                echo -e "${INFO} rofi ${rofi_version} detected. Skipping uninstall of rofi."
+        fi
 fi
 
 # conflicting packages removal
 overall_failed=0
 printf "\n%s - ${SKY_BLUE}Removing some packages${RESET} as it conflicts with KooL's Hyprland Dots \n" "${NOTE}"
 for PKG in "${uninstall[@]}"; do
-  if [[ "$PKG" == "rofi" && "$skip_rofi_uninstall" == "true" ]]; then
-    continue
-  fi
-  uninstall_package "$PKG" 2>&1 | tee -a "$LOG"
-  if [ $? -ne 0 ]; then
-    overall_failed=1
-  fi
+        if [[ "$PKG" == "rofi" && "$skip_rofi_uninstall" == "true" ]]; then
+                continue
+        fi
+        uninstall_package "$PKG" 2>&1 | tee -a "$LOG"
+        if [ $? -ne 0 ]; then
+                overall_failed=1
+        fi
 done
 
 if [ $overall_failed -ne 0 ]; then
-  echo -e "${ERROR} Some packages failed to uninstall. Please check the log."
+        echo -e "${ERROR} Some packages failed to uninstall. Please check the log."
 fi
 
 printf "\n%.0s" {1..1}
@@ -148,17 +148,17 @@ printf "\n%.0s" {1..1}
 printf "\n%s - Installing ${SKY_BLUE}KooL's Hyprland necessary packages${RESET} .... \n" "${NOTE}"
 
 for PKG1 in "${hypr_package[@]}" "${hypr_package_2[@]}" "${Extra[@]}"; do
-  install_package "$PKG1" "$LOG"
+        install_package "$PKG1" "$LOG"
 done
 
 printf "\n%.0s" {1..2}
 
 # Ensure hyprpolkitagent user service is enabled and running
 if systemctl --user list-unit-files 2>/dev/null | grep -q '^hyprpolkitagent\.service'; then
-  if ! systemctl --user is-enabled --quiet hyprpolkitagent 2>/dev/null; then
-    systemctl --user enable hyprpolkitagent 2>&1 | tee -a "$LOG" || true
-  fi
-  if ! systemctl --user is-active --quiet hyprpolkitagent 2>/dev/null; then
-    systemctl --user start hyprpolkitagent 2>&1 | tee -a "$LOG" || true
-  fi
+        if ! systemctl --user is-enabled --quiet hyprpolkitagent 2>/dev/null; then
+                systemctl --user enable hyprpolkitagent 2>&1 | tee -a "$LOG" || true
+        fi
+        if ! systemctl --user is-active --quiet hyprpolkitagent 2>/dev/null; then
+                systemctl --user start hyprpolkitagent 2>&1 | tee -a "$LOG" || true
+        fi
 fi

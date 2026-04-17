@@ -2,6 +2,9 @@
 
 ## April 2026
 
+- Updated install to use `awww` instead of `swww`
+  - `swww` is no longer maintained
+  - Thank you ` @tonicatOWO` for submitting fix
 - Fixed: Polkit issue
   - Added missing QT kvantum pkgs
   - Which prevented programs like `timeshift` and `easyeffects` from starting
