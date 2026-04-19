@@ -2,6 +2,7 @@
 
 ## April 2026
 
+- Fixed `install.sh` overwriting fastfetch config
 - Updated install to use `awww` instead of `swww`
   - `swww` is no longer maintained
   - Thank you ` @tonicatOWO` for submitting fix
