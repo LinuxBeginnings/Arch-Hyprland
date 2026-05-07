@@ -13,6 +13,7 @@ base=(
   archlinux-keyring
   findutils
   rsync
+  socat # Needed for Tak0 script
 )
 
 ## WARNING: DO NOT EDIT BEYOND THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING! ##
