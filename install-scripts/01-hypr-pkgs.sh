@@ -49,7 +49,9 @@ hypr_package=(
         qt6-declarative
         qt6-svg
         rofi
+        rofi-calc
         slurp
+        socat
         swappy
         swaync
         awww
