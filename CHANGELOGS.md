@@ -16,11 +16,12 @@
   - Some Arch distros are shipping `wallust v4.0.0-alpha`
   - That is not backwardly compatible to `v3.5.x`
   - All the theme code will have to be updated
-  - I removed `wallust` from the install script
+  - It removes `wallust` from the install script
   - The `wallust.sh` will check for v4.x and remove it
-  - Then install `wallust v3.5.2` from bundled source
+    - Then install `wallust v3.5.2` from bundled source
+    - It will add `wallust` to the `IgnorePkg` list in `/etc/pocman.conf`
+  - If still at `wallust v3.5.2` it will just add to `IgnorePkg`
 - `socat` to fix `Tak0` scripts
--
 
 ## April 2026
 
