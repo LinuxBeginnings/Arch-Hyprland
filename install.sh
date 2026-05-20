@@ -388,6 +388,8 @@ echo "${INFO} Installing ${SKY_BLUE}KooL Hyprland additional packages...${RESET}
 sleep 1
 execute_script "01-hypr-pkgs.sh" || { echo "${ERROR:-[ERROR]} Hyprland packages installation failed" | tee -a "$LOG"; exit 1; }
 sleep 1
+execute_script "wallust.sh" || { echo "${ERROR:-[ERROR]} Wallust installation failed" | tee -a "$LOG"; exit 1; }
+sleep 1
 execute_script "polkit-setup.sh" || { echo "${ERROR:-[ERROR]} Polkit setup failed" | tee -a "$LOG"; exit 1; }
 
 echo "${INFO} Installing ${SKY_BLUE}pipewire and pipewire-audio...${RESET}" | tee -a "$LOG"

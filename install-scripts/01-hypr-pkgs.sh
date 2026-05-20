@@ -55,7 +55,6 @@ hypr_package=(
   awww
   unzip # needed later
   uwsm  # In case someone selects USWM login
-  wallust
   waybar
   wget
   wl-clipboard
