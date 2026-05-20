@@ -41,17 +41,7 @@ if pacman -Qi wallust &>/dev/null; then
 fi
 
 if [ -n "$installed_version" ]; then
-  if [ "$installed_version" = "$TARGET_VERSION" ]; then
-    echo -e "${INFO} wallust ${YELLOW}$installed_version${RESET} already installed. Skipping."
-    exit 0
-  fi
-
-  installed_major="${installed_version%%.*}"
-  if [ "$installed_major" -ge 4 ]; then
-    echo -e "${NOTE} wallust ${YELLOW}$installed_version${RESET} detected. Removing it before installing ${YELLOW}$TARGET_VERSION${RESET}."
-  else
-    echo -e "${NOTE} wallust ${YELLOW}$installed_version${RESET} detected. Replacing it with ${YELLOW}$TARGET_VERSION${RESET}."
-  fi
+  echo -e "${NOTE} wallust ${YELLOW}$installed_version${RESET} detected. Removing it before installing ${YELLOW}$TARGET_VERSION${RESET}."
   uninstall_package "wallust"
 fi
 

@@ -1,5 +1,27 @@
 ## CHANGELOG
 
+## May 2026
+
+- Fixed:
+  - Set whiptail to dark colors
+    - On some terminals/systems the light colored text was unreadable
+  - Hightlight button `OK/Cancel` changed colors for readablity
+
+  - Added:
+
+- `install-scripts/update-deps.sh`
+  - This will make sure all dependencies are up to date
+  - As new features are added to the dotfiles, this will keep deps in sync
+- `install-scripts/wallust.sh`
+  - Some Arch distros are shipping `wallust v4.0.0-alpha`
+  - That is not backwardly compatible to `v3.5.x`
+  - All the theme code will have to be updated
+  - I removed `wallust` from the install script
+  - The `wallust.sh` will check for v4.x and remove it
+  - Then install `wallust v3.5.2` from bundled source
+- `socat` to fix `Tak0` scripts
+-
+
 ## April 2026
 
 - Fixed `install.sh` overwriting fastfetch config
