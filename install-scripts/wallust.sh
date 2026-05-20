@@ -29,6 +29,7 @@ LOG="Install-Logs/install-$(date +%d-%H%M%S)_wallust.log"
 
 ARCHIVE_PATH="$SCRIPT_DIR/wallust-3.5.2.tar.gz"
 TARGET_VERSION="3.5.2"
+PACMAN_CONF="/etc/pacman.conf"
 
 if [ ! -f "$ARCHIVE_PATH" ]; then
   echo -e "${ERROR} Missing archive: ${YELLOW}$ARCHIVE_PATH${RESET}"
@@ -38,6 +39,22 @@ fi
 installed_version=""
 if pacman -Qi wallust &>/dev/null; then
   installed_version="$(pacman -Qi wallust | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
+fi
+
+ensure_ignore_pkg() {
+  if grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=' "$PACMAN_CONF"; then
+    if ! grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=.*\bwallust\b' "$PACMAN_CONF"; then
+      sudo sed -i -E 's/^[[:space:]]*IgnorePkg[[:space:]]*=[[:space:]]*/&wallust /' "$PACMAN_CONF"
+    fi
+  else
+    printf "\n# Added by Arch-Hyprland install-scripts/wallust.sh\nIgnorePkg = wallust\n" | sudo tee -a "$PACMAN_CONF" >/dev/null
+  fi
+}
+
+if [ -n "$installed_version" ] && [ "$installed_version" = "$TARGET_VERSION" ]; then
+  echo -e "${INFO} wallust ${YELLOW}$installed_version${RESET} already installed. Adding to IgnorePkg."
+  ensure_ignore_pkg
+  exit 0
 fi
 
 if [ -n "$installed_version" ]; then
@@ -67,6 +84,7 @@ if pacman -Qi wallust &>/dev/null; then
   new_version="$(pacman -Qi wallust | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
   if [ "$new_version" = "$TARGET_VERSION" ]; then
     echo -e "${OK} wallust ${YELLOW}$TARGET_VERSION${RESET} installed successfully."
+    ensure_ignore_pkg
   else
     echo -e "${WARN} wallust installed but version is ${YELLOW}$new_version${RESET}. Please verify."
   fi
