@@ -6,6 +6,10 @@
   - Set whiptail to dark colors
     - On some terminals/systems the light colored text was unreadable
   - Hightlight button `OK/Cancel` changed colors for readablity
+  - `auto-install.sh`
+    - The script would got a git pull if Distro-Hyprland directory exsited
+    - If user started with JakooLit installer it would not get updated code
+    - Changed to remove `Distro-Hyprland` and do fresh git clone
 
   - Added:
 

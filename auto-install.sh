@@ -42,9 +42,10 @@ fi
 printf "\n%.0s" {1..1}
 
 if [ -d "$Distro_DIR" ]; then
-    echo "${YELLOW}$Distro_DIR exists. Updating the repository... ${RESET}"
+    echo "${YELLOW}$Distro_DIR exists. Removing and performing a fresh clone... ${RESET}"
+    rm -rf "$Distro_DIR"
+    git clone --depth=1 "$Github_URL" "$Distro_DIR"
     cd "$Distro_DIR"
-    git stash && git pull
     chmod +x install.sh
     ./install.sh
 else
