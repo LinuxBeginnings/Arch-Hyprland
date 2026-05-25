@@ -30,6 +30,18 @@
     - It will add `wallust` to the `IgnorePkg` list in `/etc/pocman.conf`
   - If still at `wallust v3.5.2` it will just add to `IgnorePkg`
 - `socat` to fix `Tak0` scripts
+  - Some scripts not executable
+  - Set dark theme for whiptail fixes colors washed out on some terminals
+    - Removed some duplicate colors
+    - Fixed hight on OK/Cancel button
+  - Hyprland-Dots download error due to bad link
+- Added:
+  - `update-deps.sh` Install new dependencies since last install
+    - You don't have to re-install everything, verifies you have all new deps
+    - If not it will install them
+  - `ddcutil` to support external monitor brightness
+  - `socat` to fix `Tak0` scripts
+  - `stylua` COPR for LUA support
 
 ## April 2026
 
