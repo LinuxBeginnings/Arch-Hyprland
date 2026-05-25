@@ -68,7 +68,36 @@ is_wallust_compatible_version() {
 }
 
 is_wallust_ignored() {
-        grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=.*(^|[[:space:]])wallust([[:space:]]|$)' "$PACMAN_CONF"
+        awk '
+                function has_wallust(value,   i, n, parts) {
+                        gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+                        n = split(value, parts, /[[:space:]]+/)
+                        for (i = 1; i <= n; i++) {
+                                if (parts[i] == "wallust") {
+                                        return 1
+                                }
+                        }
+                        return 0
+                }
+                BEGIN {
+                        in_options = 0
+                        found = 0
+                }
+                /^[[:space:]]*\[/ {
+                        in_options = ($0 ~ /^[[:space:]]*\[options\][[:space:]]*$/)
+                }
+                in_options && /^[[:space:]]*IgnorePkg[[:space:]]*=/ {
+                        line = $0
+                        sub(/^[[:space:]]*IgnorePkg[[:space:]]*=[[:space:]]*/, "", line)
+                        if (has_wallust(line)) {
+                                found = 1
+                                exit
+                        }
+                }
+                END {
+                        exit(found ? 0 : 1)
+                }
+        ' "$PACMAN_CONF"
 }
 
 # Loop through each package

@@ -46,17 +46,119 @@ is_compatible_version() {
 }
 
 is_wallust_pinned() {
-  grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=.*(^|[[:space:]])wallust([[:space:]]|$)' "$PACMAN_CONF"
+  awk '
+    function has_wallust(value,   i, n, parts) {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      n = split(value, parts, /[[:space:]]+/)
+      for (i = 1; i <= n; i++) {
+        if (parts[i] == "wallust") {
+          return 1
+        }
+      }
+      return 0
+    }
+    BEGIN {
+      in_options = 0
+      found = 0
+    }
+    /^[[:space:]]*\[/ {
+      in_options = ($0 ~ /^[[:space:]]*\[options\][[:space:]]*$/)
+    }
+    in_options && /^[[:space:]]*IgnorePkg[[:space:]]*=/ {
+      line = $0
+      sub(/^[[:space:]]*IgnorePkg[[:space:]]*=[[:space:]]*/, "", line)
+      if (has_wallust(line)) {
+        found = 1
+        exit
+      }
+    }
+    END {
+      exit(found ? 0 : 1)
+    }
+  ' "$PACMAN_CONF"
 }
 
 ensure_ignore_pkg() {
-  if grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=' "$PACMAN_CONF"; then
-    if ! is_wallust_pinned; then
-      sudo sed -i -E "0,/^[[:space:]]*IgnorePkg[[:space:]]*=/{/^[[:space:]]*IgnorePkg[[:space:]]*=/ s/[[:space:]]*$/ wallust/}" "$PACMAN_CONF"
-    fi
-  else
-    printf "\n# Added by Arch-Hyprland install-scripts/wallust.sh\nIgnorePkg = wallust\n" | sudo tee -a "$PACMAN_CONF" >/dev/null
+  tmp_conf="$(mktemp)"
+  awk '
+    function has_wallust(value,   i, n, parts) {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      n = split(value, parts, /[[:space:]]+/)
+      for (i = 1; i <= n; i++) {
+        if (parts[i] == "wallust") {
+          return 1
+        }
+      }
+      return 0
+    }
+    BEGIN {
+      in_options = 0
+      saw_options = 0
+      wrote_ignore = 0
+    }
+    /^[[:space:]]*\[/ {
+      if (in_options && !wrote_ignore) {
+        print "IgnorePkg = wallust"
+        wrote_ignore = 1
+      }
+      in_options = ($0 ~ /^[[:space:]]*\[options\][[:space:]]*$/)
+      if (in_options) {
+        saw_options = 1
+      }
+      print
+      next
+    }
+    !in_options && /^[[:space:]]*IgnorePkg[[:space:]]*=/ {
+      line = $0
+      sub(/^[[:space:]]*IgnorePkg[[:space:]]*=[[:space:]]*/, "", line)
+      if (has_wallust(line)) {
+        next
+      }
+    }
+    in_options && /^[[:space:]]*IgnorePkg[[:space:]]*=/ {
+      line = $0
+      sub(/^[[:space:]]*IgnorePkg[[:space:]]*=[[:space:]]*/, "", line)
+      if (has_wallust(line)) {
+        print
+      } else if (line == "") {
+        print "IgnorePkg = wallust"
+      } else {
+        print "IgnorePkg = " line " wallust"
+      }
+      wrote_ignore = 1
+      next
+    }
+    in_options && /^[[:space:]]*#[[:space:]]*IgnorePkg[[:space:]]*=/ && !wrote_ignore {
+      print "IgnorePkg = wallust"
+      wrote_ignore = 1
+      next
+    }
+    {
+      print
+    }
+    END {
+      if (in_options && !wrote_ignore) {
+        print "IgnorePkg = wallust"
+      } else if (!saw_options) {
+        print ""
+        print "[options]"
+        print "IgnorePkg = wallust"
+      }
+    }
+  ' "$PACMAN_CONF" > "$tmp_conf" || {
+    rm -f "$tmp_conf"
+    echo -e "${ERROR} Failed to update ${YELLOW}$PACMAN_CONF${RESET}."
+    return 1
+  }
+
+  if ! cmp -s "$tmp_conf" "$PACMAN_CONF"; then
+    sudo cp "$tmp_conf" "$PACMAN_CONF" || {
+      rm -f "$tmp_conf"
+      echo -e "${ERROR} Failed to write ${YELLOW}$PACMAN_CONF${RESET}."
+      return 1
+    }
   fi
+  rm -f "$tmp_conf"
 
   if is_wallust_pinned; then
     echo -e "${OK} wallust pinned in ${YELLOW}$PACMAN_CONF${RESET} via IgnorePkg."
