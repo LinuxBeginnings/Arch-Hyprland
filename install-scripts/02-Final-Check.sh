@@ -51,6 +51,7 @@ source "$(dirname "$(readlink -f "$0")")/Global_functions.sh"
 
 # Set the name of the log file to include the current date and time
 LOG="Install-Logs/00_CHECK-$(date +%d-%H%M%S)_installed.log"
+PACMAN_CONF="/etc/pacman.conf"
 
 printf "\n%s - Final Check if all ${SKY_BLUE}Essential packages${RESET} were installed \n" "${NOTE}"
 # Initialize an empty array to hold missing packages
@@ -60,6 +61,14 @@ local_missing=()
 # Function to check if a packages are installed using pacman
 is_installed_pacman() {
         pacman -Qi "$1" &>/dev/null
+}
+
+is_wallust_compatible_version() {
+        [[ "$1" =~ ^3\.5(\.|$) ]]
+}
+
+is_wallust_ignored() {
+        grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=.*(^|[[:space:]])wallust([[:space:]]|$)' "$PACMAN_CONF"
 }
 
 # Loop through each package
@@ -98,6 +107,23 @@ else
         fi
 
         echo "${NOTE} Missing packages logged at $(date)" >>"$LOG"
+fi
+
+if pacman -Qi wallust &>/dev/null; then
+        wallust_version="$(pacman -Qi wallust | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
+        if is_wallust_compatible_version "$wallust_version"; then
+                echo "${OK} wallust version is compatible (${wallust_version})." | tee -a "$LOG"
+        else
+                echo "${WARN} wallust version is ${wallust_version}. Expected 3.5.x. Run install-scripts/wallust.sh." | tee -a "$LOG"
+        fi
+else
+        echo "${WARN} wallust is not installed. Run install-scripts/wallust.sh." | tee -a "$LOG"
+fi
+
+if is_wallust_ignored; then
+        echo "${OK} /etc/pacman.conf IgnorePkg includes wallust." | tee -a "$LOG"
+else
+        echo "${WARN} /etc/pacman.conf IgnorePkg is missing wallust. Run install-scripts/wallust.sh." | tee -a "$LOG"
 fi
 
 # Check hyprpolkitagent user service status

@@ -149,6 +149,19 @@ done
 
 printf "\n%.0s" {1..2}
 
+printf "\n%s - Enforcing ${SKY_BLUE}wallust 3.5.x compatibility${RESET} ... \n" "${NOTE}"
+if [ -f "$SCRIPT_DIR/wallust.sh" ]; then
+  if ! (set -o pipefail; bash "$SCRIPT_DIR/wallust.sh" 2>&1 | tee -a "$LOG"); then
+    echo -e "${ERROR} wallust compatibility setup failed. Please check ${YELLOW}$LOG${RESET}."
+    exit 1
+  fi
+else
+  echo -e "${ERROR} Missing ${YELLOW}$SCRIPT_DIR/wallust.sh${RESET}."
+  exit 1
+fi
+
+printf "\n%.0s" {1..1}
+
 # Ensure hyprpolkitagent user service is enabled and running
 if systemctl --user list-unit-files 2>/dev/null | grep -q '^hyprpolkitagent\.service'; then
   if ! systemctl --user is-enabled --quiet hyprpolkitagent 2>/dev/null; then

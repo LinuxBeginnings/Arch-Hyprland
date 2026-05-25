@@ -41,24 +41,44 @@ if pacman -Qi wallust &>/dev/null; then
   installed_version="$(pacman -Qi wallust | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
 fi
 
+is_compatible_version() {
+  [[ "$1" =~ ^3\.5(\.|$) ]]
+}
+
+is_wallust_pinned() {
+  grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=.*(^|[[:space:]])wallust([[:space:]]|$)' "$PACMAN_CONF"
+}
+
 ensure_ignore_pkg() {
   if grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=' "$PACMAN_CONF"; then
-    if ! grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=.*\bwallust\b' "$PACMAN_CONF"; then
-      sudo sed -i -E 's/^[[:space:]]*IgnorePkg[[:space:]]*=[[:space:]]*/&wallust /' "$PACMAN_CONF"
+    if ! is_wallust_pinned; then
+      sudo sed -i -E "0,/^[[:space:]]*IgnorePkg[[:space:]]*=/{/^[[:space:]]*IgnorePkg[[:space:]]*=/ s/[[:space:]]*$/ wallust/}" "$PACMAN_CONF"
     fi
   else
     printf "\n# Added by Arch-Hyprland install-scripts/wallust.sh\nIgnorePkg = wallust\n" | sudo tee -a "$PACMAN_CONF" >/dev/null
   fi
+
+  if is_wallust_pinned; then
+    echo -e "${OK} wallust pinned in ${YELLOW}$PACMAN_CONF${RESET} via IgnorePkg."
+    return 0
+  fi
+
+  echo -e "${ERROR} Failed to pin wallust in ${YELLOW}$PACMAN_CONF${RESET}."
+  return 1
 }
 
-if [ -n "$installed_version" ] && [ "$installed_version" = "$TARGET_VERSION" ]; then
-  echo -e "${INFO} wallust ${YELLOW}$installed_version${RESET} already installed. Adding to IgnorePkg."
-  ensure_ignore_pkg
+if [ -n "$installed_version" ] && is_compatible_version "$installed_version"; then
+  echo -e "${INFO} wallust ${YELLOW}$installed_version${RESET} is compatible (3.5.x)."
+  ensure_ignore_pkg || exit 1
   exit 0
 fi
 
 if [ -n "$installed_version" ]; then
-  echo -e "${NOTE} wallust ${YELLOW}$installed_version${RESET} detected. Removing it before installing ${YELLOW}$TARGET_VERSION${RESET}."
+  if [[ "$installed_version" =~ ^4\. ]]; then
+    echo -e "${NOTE} Incompatible wallust ${YELLOW}$installed_version${RESET} detected. Downgrading to ${YELLOW}$TARGET_VERSION${RESET}."
+  else
+    echo -e "${NOTE} Unsupported wallust ${YELLOW}$installed_version${RESET} detected. Installing ${YELLOW}$TARGET_VERSION${RESET}."
+  fi
   uninstall_package "wallust"
 fi
 
@@ -82,11 +102,12 @@ rm -rf "$BUILD_DIR"
 
 if pacman -Qi wallust &>/dev/null; then
   new_version="$(pacman -Qi wallust | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
-  if [ "$new_version" = "$TARGET_VERSION" ]; then
-    echo -e "${OK} wallust ${YELLOW}$TARGET_VERSION${RESET} installed successfully."
-    ensure_ignore_pkg
+  if is_compatible_version "$new_version"; then
+    echo -e "${OK} wallust ${YELLOW}$new_version${RESET} installed successfully."
+    ensure_ignore_pkg || exit 1
   else
-    echo -e "${WARN} wallust installed but version is ${YELLOW}$new_version${RESET}. Please verify."
+    echo -e "${ERROR} wallust installed but version is ${YELLOW}$new_version${RESET}. Expected 3.5.x."
+    exit 1
   fi
 else
   echo -e "${ERROR} wallust installation failed. Please check ${YELLOW}$LOG${RESET}."
