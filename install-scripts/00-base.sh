@@ -15,6 +15,7 @@ base=(
   rsync
   socat   # Needed for Tak0 script
   ddcutil # needed for external brightness script
+  yazi
 )
 
 ## WARNING: DO NOT EDIT BEYOND THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING! ##
