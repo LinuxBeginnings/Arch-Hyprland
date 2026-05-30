@@ -3,6 +3,7 @@
 ## May 2026
 
 - Fixed:
+  - `wallust.sh` errors were causing installation to fail
   - Set whiptail to dark colors
     - On some terminals/systems the light colored text was unreadable
   - Hightlight button `OK/Cancel` changed colors for readablity
