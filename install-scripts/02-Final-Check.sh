@@ -69,7 +69,7 @@ is_wallust_compatible_version() {
 }
 
 is_wallust_ignored() {
-  awk '
+        awk '
                 function has_wallust(value,   i, n, parts) {
                         gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
                         n = split(value, parts, /[[:space:]]+/)
