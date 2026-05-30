@@ -3,6 +3,7 @@
 ## May 2026
 
 - Fixed:
+  - `wallust.sh` errors were causing installation to fail
   - Set whiptail to dark colors
     - On some terminals/systems the light colored text was unreadable
   - Hightlight button `OK/Cancel` changed colors for readablity
@@ -13,6 +14,7 @@
 
   - Added:
 
+- CLI file manager `yazi`
 - `install-scripts/wallust.sh`
   - This will verify the version of wallust v3.5.x
     - If v4.0.x it will uninstall it and install v3.5.2

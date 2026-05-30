@@ -25,7 +25,9 @@ if ! source "$(dirname "$(readlink -f "$0")")/Global_functions.sh"; then
 fi
 
 # Set the name of the log file to include the current date and time
-LOG="Install-Logs/install-$(date +%d-%H%M%S)_wallust.log"
+LOG_DIR="$PARENT_DIR/Install-Logs"
+mkdir -p "$LOG_DIR"
+LOG="$LOG_DIR/install-$(date +%d-%H%M%S)_wallust.log"
 
 ARCHIVE_PATH="$SCRIPT_DIR/wallust-3.5.2.tar.gz"
 TARGET_VERSION="3.5.2"
