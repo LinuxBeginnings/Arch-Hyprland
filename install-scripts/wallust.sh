@@ -39,9 +39,22 @@ if [ ! -f "$ARCHIVE_PATH" ]; then
 fi
 
 installed_version=""
-if pacman -Qi wallust &>/dev/null; then
-  installed_version="$(pacman -Qi wallust | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
-fi
+get_wallust_version() {
+  local raw_version=""
+  raw_version="$(pacman -Q wallust 2>/dev/null | awk '{print $2}' || true)"
+  [ -n "$raw_version" ] || return 1
+
+  # Normalize package version:
+  #   1:3.5.2-1 -> 3.5.2
+  #   3.5.2-1   -> 3.5.2
+  raw_version="${raw_version%%-*}"
+  raw_version="${raw_version#*:}"
+
+  [ -n "$raw_version" ] || return 1
+  printf '%s\n' "$raw_version"
+}
+
+installed_version="$(get_wallust_version || true)"
 
 is_compatible_version() {
   [[ "$1" =~ ^3\.5(\.|$) ]]
@@ -204,8 +217,7 @@ popd >/dev/null
 
 rm -rf "$BUILD_DIR"
 
-if pacman -Qi wallust &>/dev/null; then
-  new_version="$(pacman -Qi wallust | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
+if new_version="$(get_wallust_version)"; then
   if is_compatible_version "$new_version"; then
     echo -e "${OK} wallust ${YELLOW}$new_version${RESET} installed successfully."
     ensure_ignore_pkg || exit 1

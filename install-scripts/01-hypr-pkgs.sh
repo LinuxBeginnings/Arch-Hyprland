@@ -111,6 +111,8 @@ fi
 
 # Set the name of the log file to include the current date and time
 LOG="Install-Logs/install-$(date +%d-%H%M%S)_hypr-pkgs.log"
+WALLUST_STATUS_FILE="$PARENT_DIR/Install-Logs/.wallust-status"
+rm -f "$WALLUST_STATUS_FILE"
 # rofi v2.x presence check (do not remove if already on v2.x)
 skip_rofi_uninstall=false
 if pacman -Qi rofi &>/dev/null; then
@@ -150,14 +152,21 @@ done
 printf "\n%.0s" {1..2}
 
 printf "\n%s - Enforcing ${SKY_BLUE}wallust 3.5.x compatibility${RESET} ... \n" "${NOTE}"
+wallust_setup_failed=0
 if [ -f "$SCRIPT_DIR/wallust.sh" ]; then
   if ! (set -o pipefail; bash "$SCRIPT_DIR/wallust.sh" 2>&1 | tee -a "$LOG"); then
-    echo -e "${ERROR} wallust compatibility setup failed. Please check ${YELLOW}$LOG${RESET}."
-    exit 1
+    wallust_setup_failed=1
+    echo -e "${WARN} wallust compatibility setup failed. Continuing installation without wallust. Please check ${YELLOW}$LOG${RESET}."
   fi
 else
-  echo -e "${ERROR} Missing ${YELLOW}$SCRIPT_DIR/wallust.sh${RESET}."
-  exit 1
+  wallust_setup_failed=1
+  echo -e "${WARN} Missing ${YELLOW}$SCRIPT_DIR/wallust.sh${RESET}. Continuing installation without wallust."
+fi
+
+if [ "$wallust_setup_failed" -eq 0 ]; then
+  printf 'ok\n' > "$WALLUST_STATUS_FILE"
+else
+  printf 'failed\n' > "$WALLUST_STATUS_FILE"
 fi
 
 printf "\n%.0s" {1..1}

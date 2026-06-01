@@ -1,5 +1,13 @@
 ## CHANGELOG
 
+## Jun 2026
+
+- Fixed:
+  - `wallust.sh`
+    - `pacman -Qi` can return NULL value
+      - Script checking more robust now
+      - Also it won't exit installation, it will be noted as failure
+
 ## May 2026
 
 - Fixed:

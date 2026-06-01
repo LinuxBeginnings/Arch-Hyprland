@@ -131,6 +131,10 @@ fi
 
 # Path to the install-scripts directory
 script_directory=install-scripts
+WALLUST_STATUS_FILE="Install-Logs/.wallust-status"
+wallust_setup_failed=0
+dotfiles_paused_for_wallust=0
+declare -a deferred_non_fatal_failures=()
 
 # Function to execute a script if it exists and make it executable
 execute_script() {
@@ -402,10 +406,19 @@ execute_script "01-hypr-pkgs.sh" || {
   exit 1
 }
 sleep 1
-execute_script "wallust.sh" || {
-  echo "${ERROR:-[ERROR]} Wallust installation failed" | tee -a "$LOG"
-  exit 1
-}
+
+if [ -f "$WALLUST_STATUS_FILE" ]; then
+  wallust_status="$(tr -d '[:space:]' < "$WALLUST_STATUS_FILE")"
+  if [ "$wallust_status" = "failed" ]; then
+    wallust_setup_failed=1
+    deferred_non_fatal_failures+=("wallust compatibility setup failed (theming may be incomplete)")
+    echo "${WARN} wallust compatibility setup failed. Continuing with the remaining installation." | tee -a "$LOG"
+  fi
+else
+  wallust_setup_failed=1
+  deferred_non_fatal_failures+=("wallust compatibility status could not be determined")
+  echo "${WARN} wallust status marker is missing. Continuing, but dotfiles will be paused if selected." | tee -a "$LOG"
+fi
 sleep 1
 execute_script "polkit-setup.sh" || {
   echo "${ERROR:-[ERROR]} Polkit setup failed" | tee -a "$LOG"
@@ -502,6 +515,15 @@ for option in "${options[@]}"; do
     execute_script "rog.sh"
     ;;
   dots)
+    if [ "$wallust_setup_failed" -ne 0 ]; then
+      dotfiles_paused_for_wallust=1
+      deferred_non_fatal_failures+=("dotfiles installation paused because wallust setup failed")
+      echo "${WARN} Dotfiles installation paused because wallust compatibility setup failed." | tee -a "$LOG"
+      if command -v whiptail >/dev/null 2>&1; then
+        whiptail --title "Dotfiles Paused" --msgbox "wallust compatibility setup failed earlier.\n\nDotfiles installation has been paused to avoid an incomplete theming setup.\n\nFix wallust first, then rerun with only the dots option or run install-scripts/dotfiles-main.sh manually." 14 90
+      fi
+      continue
+    fi
     echo "${INFO} Installing pre-configured ${SKY_BLUE}KooL Hyprland dotfiles...${RESET}" | tee -a "$LOG"
     execute_script "dotfiles-main.sh" || {
       echo "${ERROR:-[ERROR]} Dotfiles installation failed" | tee -a "$LOG"
@@ -520,6 +542,15 @@ clear
 
 # final check essential packages if it is installed
 execute_script "02-Final-Check.sh"
+if [ ${#deferred_non_fatal_failures[@]} -gt 0 ]; then
+  printf "\n%s - Installation completed with non-fatal issues:\n" "${WARN}" | tee -a "$LOG"
+  for issue in "${deferred_non_fatal_failures[@]}"; do
+    printf " - %s\n" "$issue" | tee -a "$LOG"
+  done
+  if [ "$dotfiles_paused_for_wallust" -ne 0 ]; then
+    printf "%s Re-run after fixing wallust to install KooL dotfiles.\n" "${NOTE}" | tee -a "$LOG"
+  fi
+fi
 
 printf "\n%.0s" {1..1}
 

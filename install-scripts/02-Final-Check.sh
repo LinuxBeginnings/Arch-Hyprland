@@ -67,6 +67,17 @@ is_installed_pacman() {
 is_wallust_compatible_version() {
   [[ "$1" =~ ^3\.5(\.|$) ]]
 }
+get_wallust_version() {
+  local raw_version=""
+  raw_version="$(pacman -Q wallust 2>/dev/null | awk '{print $2}' || true)"
+  [ -n "$raw_version" ] || return 1
+
+  raw_version="${raw_version%%-*}"
+  raw_version="${raw_version#*:}"
+
+  [ -n "$raw_version" ] || return 1
+  printf '%s\n' "$raw_version"
+}
 
 is_wallust_ignored() {
         awk '
@@ -139,8 +150,7 @@ else
   echo "${NOTE} Missing packages logged at $(date)" >>"$LOG"
 fi
 
-if pacman -Qi wallust &>/dev/null; then
-  wallust_version="$(pacman -Qi wallust | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
+if wallust_version="$(get_wallust_version)"; then
   if is_wallust_compatible_version "$wallust_version"; then
     echo "${OK} wallust version is compatible (${wallust_version})." | tee -a "$LOG"
   else
