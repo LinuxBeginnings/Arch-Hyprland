@@ -14,7 +14,7 @@
 
 # add packages wanted here
 Extra=(
-
+  hyprmod
 )
 
 hypr_package=(
@@ -154,7 +154,10 @@ printf "\n%.0s" {1..2}
 printf "\n%s - Enforcing ${SKY_BLUE}wallust 3.5.x compatibility${RESET} ... \n" "${NOTE}"
 wallust_setup_failed=0
 if [ -f "$SCRIPT_DIR/wallust.sh" ]; then
-  if ! (set -o pipefail; bash "$SCRIPT_DIR/wallust.sh" 2>&1 | tee -a "$LOG"); then
+  if ! (
+    set -o pipefail
+    bash "$SCRIPT_DIR/wallust.sh" 2>&1 | tee -a "$LOG"
+  ); then
     wallust_setup_failed=1
     echo -e "${WARN} wallust compatibility setup failed. Continuing installation without wallust. Please check ${YELLOW}$LOG${RESET}."
   fi
@@ -164,9 +167,9 @@ else
 fi
 
 if [ "$wallust_setup_failed" -eq 0 ]; then
-  printf 'ok\n' > "$WALLUST_STATUS_FILE"
+  printf 'ok\n' >"$WALLUST_STATUS_FILE"
 else
-  printf 'failed\n' > "$WALLUST_STATUS_FILE"
+  printf 'failed\n' >"$WALLUST_STATUS_FILE"
 fi
 
 printf "\n%.0s" {1..1}
