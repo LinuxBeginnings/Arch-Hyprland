@@ -59,7 +59,7 @@ hypr_package=(
   wget
   wl-clipboard
   wlogout
-  xfce-polkit
+  #xfce-polkit
   xdg-user-dirs
   xdg-utils
   yad
