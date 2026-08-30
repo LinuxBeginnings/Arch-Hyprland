@@ -30,6 +30,7 @@ packages=(
   hyprlock
   hyprland
   yazi
+  nwg-dock-hyprland
 )
 
 # Local packages that should be in /usr/local/bin/

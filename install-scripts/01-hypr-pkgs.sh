@@ -79,6 +79,7 @@ hypr_package_2=(
   nvtop
   nwg-look
   nwg-displays
+  nwg-dock-hyprland
   pacman-contrib
   qalculate-gtk
   yt-dlp

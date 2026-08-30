@@ -1,5 +1,10 @@
 ## CHANGELOG
 
+## Aug 2026
+
+- Added:
+  - `nwg-dock-hyprland` to packages
+
 ## Jun 2026
 
 - Fixed:
