@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ==================================================
 #  KoolDots (2026)
 #  Project URL: https://github.com/LinuxBeginnings
@@ -6,8 +6,6 @@
 #  SPDX-License-Identifier: GPL-3.0-or-later
 # ==================================================
 # https://github.com/LinuxBeginnings
-
-clear
 
 # Set some colors for output messages
 OK="$(tput setaf 2)[OK]$(tput sgr0)"
@@ -408,7 +406,7 @@ execute_script "01-hypr-pkgs.sh" || {
 sleep 1
 
 if [ -f "$WALLUST_STATUS_FILE" ]; then
-  wallust_status="$(tr -d '[:space:]' < "$WALLUST_STATUS_FILE")"
+  wallust_status="$(tr -d '[:space:]' <"$WALLUST_STATUS_FILE")"
   if [ "$wallust_status" = "failed" ]; then
     wallust_setup_failed=1
     deferred_non_fatal_failures+=("wallust compatibility setup failed (theming may be incomplete)")
