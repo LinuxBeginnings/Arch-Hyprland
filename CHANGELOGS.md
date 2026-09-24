@@ -3,7 +3,9 @@
 ## Sep 2026
 
 - Added:
-  - Flock dependency for Rofi Emoji menu
+  - utils-linux dependency for Rofi Emoji menu
+  - Removed quickshell and XDPH from menu
+    - Installed by default
 
 ## Aug 2026
 

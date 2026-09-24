@@ -157,10 +157,8 @@ execute_script() {
 gtk_themes="OFF"
 bluetooth="OFF"
 thunar="OFF"
-quickshell="OFF"
 sddm="OFF"
 sddm_theme="OFF"
-xdph="OFF"
 zsh="OFF"
 pokemon="OFF"
 rog="OFF"
@@ -294,8 +292,6 @@ options_command+=(
   "gtk_themes" "Install GTK themes? (required for Dark/Light function)" "OFF"
   "bluetooth" "Do you want script to configure Bluetooth?" "OFF"
   "thunar" "Do you want Thunar file manager to be installed?" "OFF"
-  "quickshell" "Install quickshell for Desktop-Like Overview?" "OFF"
-  "xdph" "Install XDG-DESKTOP-PORTAL-HYPRLAND (for screen share)?" "OFF"
   "zsh" "Install zsh shell with Oh-My-Zsh?" "OFF"
   "pokemon" "Add Pokemon color scripts to your terminal?" "OFF"
   "rog" "Are you installing on Asus ROG laptops?" "OFF"
@@ -444,6 +440,22 @@ execute_script "hyprland.sh" || {
   exit 1
 }
 
+# quickshell and xdg-desktop-portal-hyprland are installed by default;
+# they are no longer offered as optional menu choices.
+echo "${INFO} Installing ${SKY_BLUE}quickshell (Desktop Overview)...${RESET}" | tee -a "$LOG"
+sleep 1
+execute_script "quickshell.sh" || {
+  echo "${ERROR:-[ERROR]} quickshell installation failed" | tee -a "$LOG"
+  exit 1
+}
+
+echo "${INFO} Installing ${SKY_BLUE}xdg-desktop-portal-hyprland...${RESET}" | tee -a "$LOG"
+sleep 1
+execute_script "xdph.sh" || {
+  echo "${ERROR:-[ERROR]} xdg-desktop-portal-hyprland installation failed" | tee -a "$LOG"
+  exit 1
+}
+
 # Clean up the selected options (remove quotes and trim spaces)
 selected_options=$(echo "$selected_options" | tr -d '"' | tr -s ' ')
 
@@ -478,14 +490,6 @@ for option in "${options[@]}"; do
   input_group)
     echo "${INFO} Adding user into ${SKY_BLUE}input group...${RESET}" | tee -a "$LOG"
     execute_script "InputGroup.sh"
-    ;;
-  quickshell)
-    echo "${INFO} Installing ${SKY_BLUE}quickshell for Desktop Overview...${RESET}" | tee -a "$LOG"
-    execute_script "quickshell.sh"
-    ;;
-  xdph)
-    echo "${INFO} Installing ${SKY_BLUE}xdg-desktop-portal-hyprland...${RESET}" | tee -a "$LOG"
-    execute_script "xdph.sh"
     ;;
   bluetooth)
     echo "${INFO} Configuring ${SKY_BLUE}Bluetooth...${RESET}" | tee -a "$LOG"
