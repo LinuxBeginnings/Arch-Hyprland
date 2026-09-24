@@ -25,7 +25,6 @@ hypr_package=(
   grim
   gvfs
   gvfs-mtp
-  flock
   hyprpolkitagent
   hyprsunset
   imagemagick
@@ -55,7 +54,8 @@ hypr_package=(
   swaync
   awww
   unzip # needed later
-  uwsm  # In case someone selects USWM login
+  util-linux
+  uwsm # In case someone selects USWM login
   waybar
   wget
   wl-clipboard

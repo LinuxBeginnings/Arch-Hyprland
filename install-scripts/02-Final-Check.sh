@@ -20,7 +20,7 @@ packages=(
   imagemagick
   swaync
   awww
-  flock
+  util-linux
   wallust
   waybar
   wl-clipboard
