@@ -25,6 +25,7 @@ hypr_package=(
   grim
   gvfs
   gvfs-mtp
+  flock
   hyprpolkitagent
   hyprsunset
   imagemagick

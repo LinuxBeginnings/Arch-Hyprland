@@ -1,5 +1,10 @@
 ## CHANGELOG
 
+## Sep 2026
+
+- Added:
+  - Flock dependency for Rofi Emoji menu
+
 ## Aug 2026
 
 - Added:
