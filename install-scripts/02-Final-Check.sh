@@ -30,6 +30,8 @@ packages=(
   hypridle
   hyprlock
   hyprland
+  hyprland-guiutils
+  lua
   yazi
   nwg-dock-hyprland
 )
@@ -37,6 +39,12 @@ packages=(
 # Local packages that should be in /usr/local/bin/
 local_pkgs_installed=(
 
+)
+
+# Essential binaries that must be available in PATH
+binaries=(
+  luac
+  hyprland-dialog
 )
 
 ## WARNING: DO NOT EDIT BEYOND THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING! ##
@@ -116,6 +124,13 @@ done
 for pkg1 in "${local_pkgs_installed[@]}"; do
   if ! [ -f "/usr/local/bin/$pkg1" ]; then
     local_missing+=("$pkg1")
+  fi
+done
+
+# Check required binaries in PATH
+for bin in "${binaries[@]}"; do
+  if ! command -v "$bin" >/dev/null 2>&1; then
+    local_missing+=("$bin")
   fi
 done
 

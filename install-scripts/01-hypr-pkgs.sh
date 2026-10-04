@@ -27,6 +27,7 @@ hypr_package=(
   gvfs-mtp
   hyprpolkitagent
   hyprsunset
+  hyprland-guiutils
   imagemagick
   inxi
   jq
@@ -34,6 +35,7 @@ hypr_package=(
   kvantum
   kvantum-qt5
   libspng
+  lua
   nano
   network-manager-applet
   pamixer
