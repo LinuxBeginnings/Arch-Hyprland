@@ -58,7 +58,7 @@ hypr_package=(
   unzip # needed later
   util-linux
   uwsm # In case someone selects USWM login
-  waybar
+  waybar-git # AUR; the repo waybar is removed below as a conflict
   wget
   wl-clipboard
   wlogout
@@ -95,6 +95,7 @@ uninstall=(
   wallust-git
   rofi-lbonn-wayland
   rofi-lbonn-wayland-git
+  waybar # repo variant, conflicts with waybar-git
 )
 
 ## WARNING: DO NOT EDIT BEYOND THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING! ##
@@ -127,11 +128,22 @@ if pacman -Qi rofi &>/dev/null; then
   fi
 fi
 
+# Repo waybar has to go before waybar-git can be installed. Check the real
+# package name: `pacman -Qi waybar` resolves through provides, so it matches
+# waybar-git too and an unguarded removal would delete the wanted package.
+skip_waybar_uninstall=true
+if [ "$(pacman -Qi waybar 2>/dev/null | awk -F': ' '/^Name/{print $2; exit}')" = "waybar" ]; then
+  skip_waybar_uninstall=false
+fi
+
 # conflicting packages removal
 overall_failed=0
 printf "\n%s - ${SKY_BLUE}Removing some packages${RESET} as it conflicts with KooL's Hyprland Dots \n" "${NOTE}"
 for PKG in "${uninstall[@]}"; do
   if [[ "$PKG" == "rofi" && "$skip_rofi_uninstall" == "true" ]]; then
+    continue
+  fi
+  if [[ "$PKG" == "waybar" && "$skip_waybar_uninstall" == "true" ]]; then
     continue
   fi
   uninstall_package "$PKG" 2>&1 | tee -a "$LOG"

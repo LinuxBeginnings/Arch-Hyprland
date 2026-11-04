@@ -22,7 +22,8 @@ packages=(
   awww
   util-linux
   wallust
-  waybar
+  # waybar is checked further down: Arch uses waybar-git and it reports a
+  # build tag rather than a plain package version
   wl-clipboard
   wlogout
   kitty
@@ -133,6 +134,25 @@ for bin in "${binaries[@]}"; do
     local_missing+=("$bin")
   fi
 done
+
+# waybar comes from the AUR as waybar-git on Arch, so either name satisfies
+# the dots. `waybar -v` reports a build tag that pins the exact revision,
+# which the package version alone does not:
+#   Waybar v0.15.0-1100-gf6f73c81 (branch 'master')
+waybar_pkg=""
+for candidate in waybar-git waybar; do
+  if is_installed_pacman "$candidate"; then
+    waybar_pkg="$candidate"
+    break
+  fi
+done
+
+if [ -z "$waybar_pkg" ]; then
+  missing+=("waybar")
+else
+  waybar_build="$(waybar -v 2>/dev/null | awk '/^Waybar v/{print; exit}')"
+  echo "${OK} ${waybar_pkg} is installed${waybar_build:+ - $waybar_build}." | tee -a "$LOG"
+fi
 
 # Log missing packages
 if [ ${#missing[@]} -eq 0 ] && [ ${#local_missing[@]} -eq 0 ]; then

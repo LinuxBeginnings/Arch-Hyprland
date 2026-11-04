@@ -135,6 +135,7 @@ packages=(
         "tumbler" "Thumbnail Service" "off"
         "wallust" "color pallete generator" "off"
         "waybar" "wayland bar" "off"
+        "waybar-git" "wayland bar (AUR git build)" "off"
         "wl-clipboard" "clipboard manager" "off"
         "wlogout" "logout menu" "off"
         "yad" "dialog box" "off"
