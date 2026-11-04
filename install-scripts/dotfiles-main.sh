@@ -26,7 +26,10 @@ fi
 printf "${NOTE} Cloning and Installing ${SKY_BLUE}KooL's Hyprland Dots${RESET}....\n"
 
 if [ -d Hyprland-Dots ]; then
-  cd Hyprland-Dots
+  cd Hyprland-Dots || {
+    echo -e "${ERROR} Failed to change directory to Hyprland-Dots"
+    exit 1
+  }
   git stash && git pull
   chmod +x copy.sh
   ./copy.sh 

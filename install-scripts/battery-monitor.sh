@@ -57,10 +57,16 @@ NOTIFIED_LOW=false
 NOTIFIED_CRITICAL=false
 
 while true; do
-    # Get battery percentage
-    BATTERY_LEVEL=$(acpi -b | grep -P -o '[0-9]+(?=%)')
-    BATTERY_STATUS=$(acpi -b | grep -o 'Discharging\|Charging\|Full')
-    
+    # Get battery percentage (lowest level when several batteries are present)
+    BATTERY_LEVEL=$(acpi -b 2>/dev/null | grep -P -o '[0-9]+(?=%)' | sort -n | head -1)
+    BATTERY_STATUS=$(acpi -b 2>/dev/null | grep -o 'Discharging\|Charging\|Full' | head -1)
+
+    # No battery data (desktop, or acpi not readable): nothing to monitor
+    if ! [[ "$BATTERY_LEVEL" =~ ^[0-9]+$ ]]; then
+        sleep "$CHECK_INTERVAL"
+        continue
+    fi
+
     # Only send notifications when discharging
     if [ "$BATTERY_STATUS" = "Discharging" ]; then
         if [ "$BATTERY_LEVEL" -le "$CRITICAL_BATTERY_THRESHOLD" ] && [ "$NOTIFIED_CRITICAL" = false ]; then

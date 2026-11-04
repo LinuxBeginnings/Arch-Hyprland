@@ -44,14 +44,19 @@ printf "\n%.0s" {1..1}
 if [ -d "$Distro_DIR" ]; then
     echo "${YELLOW}$Distro_DIR exists. Removing and performing a fresh clone... ${RESET}"
     rm -rf "$Distro_DIR"
-    git clone --depth=1 "$Github_URL" "$Distro_DIR"
-    cd "$Distro_DIR"
-    chmod +x install.sh
-    ./install.sh
 else
     echo "${MAGENTA}$Distro_DIR does not exist. Cloning the repository...${RESET}"
-    git clone --depth=1 "$Github_URL" "$Distro_DIR"
-    cd "$Distro_DIR"
-    chmod +x install.sh
-    ./install.sh
 fi
+
+git clone --depth=1 "$Github_URL" "$Distro_DIR" || {
+    echo "${ERROR} Failed to clone $Github_URL. Check your internet connection."
+    exit 1
+}
+
+cd "$Distro_DIR" || {
+    echo "${ERROR} Failed to change directory to $Distro_DIR."
+    exit 1
+}
+
+chmod +x install.sh
+./install.sh

@@ -50,6 +50,21 @@ if [ $? -eq 1 ]; then
         exit 0
 fi
 
+# Selections are written here and reused for the retry/report loops
+SELECTED_PACKAGES_FILE="/tmp/selected_packages.txt"
+SELECTED_DIRECTORIES_FILE="/tmp/selected_directories.txt"
+
+# Always remove the temp files, including on Ctrl+C or an early exit
+cleanup_selection_files() {
+        rm -f "$SELECTED_PACKAGES_FILE" "$SELECTED_DIRECTORIES_FILE"
+}
+trap cleanup_selection_files EXIT INT TERM
+
+# Collected so the run can report exactly what it could not remove
+failed_packages=()
+failed_dirs=()
+failed_local=()
+
 # Function to remove selected packages
 remove_packages() {
         local selected_packages_file=$1
@@ -58,6 +73,7 @@ remove_packages() {
                         echo "Removing package: $package"
                         if ! sudo pacman -Rs --noconfirm "$package"; then
                                 echo "$ERROR Failed to remove package: $package"
+                                failed_packages+=("$package")
                         else
                                 echo "$OK Successfully removed package: $package"
                         fi
@@ -78,6 +94,7 @@ remove_directories() {
                                 echo "Removing directory: $dir_to_remove"
                                 if ! rm -rf "$dir_to_remove"; then
                                         echo "$ERROR Failed to remove directory: $dir_to_remove"
+                                        failed_dirs+=("$dir_to_remove")
                                 else
                                         echo "$OK Successfully removed directory: $dir_to_remove"
                                 fi
@@ -119,7 +136,7 @@ packages=(
         "qt5ct" "qt5ct" "off"
         "qt6ct" "qt6ct" "off"
         "qt6-declarative" "QT apps theming" "off"
-        "rofi-wayland" "rofi-wayland" "off"
+        "rofi" "rofi launcher" "off"
         "slurp" "screenshot tool" "off"
         "swappy" "screenshot tool" "off"
         "swaync" "notification agent" "off"
@@ -177,7 +194,7 @@ while true; do
         if [[ -z "$package_choices" ]]; then
                 echo "$NOTE No packages selected. Please select at least one package."
         else
-                echo "$package_choices" | tr -d '"' | tr ' ' '\n' >/tmp/selected_packages.txt
+                echo "$package_choices" | tr -d '"' | tr ' ' '\n' >"$SELECTED_PACKAGES_FILE"
                 echo "Packages to remove: $package_choices"
                 break
         fi
@@ -200,7 +217,7 @@ while true; do
                 echo "$NOTE No directories selected. Please select at least one directory."
         else
                 # Save each selected directory to a new line in the temporary file
-                echo "$dir_choices" | tr -d '"' | tr ' ' '\n' >/tmp/selected_directories.txt
+                echo "$dir_choices" | tr -d '"' | tr ' ' '\n' >"$SELECTED_DIRECTORIES_FILE"
                 echo "Directories to remove: $dir_choices"
                 break
         fi
@@ -228,7 +245,7 @@ MAX_ATTEMPTS=2
 ATTEMPT=0
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
         # Remove packages
-        remove_packages /tmp/selected_packages.txt
+        remove_packages "$SELECTED_PACKAGES_FILE"
 
         # Check if any packages still need to be removed, retry if needed
         MISSING_PACKAGE_COUNT=0
@@ -236,30 +253,61 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
                 if pacman -Qi "$package" &>/dev/null; then
                         MISSING_PACKAGE_COUNT=$((MISSING_PACKAGE_COUNT + 1))
                 fi
-        done </tmp/selected_packages.txt
+        done <"$SELECTED_PACKAGES_FILE"
 
         if [ $MISSING_PACKAGE_COUNT -gt 0 ]; then
                 ATTEMPT=$((ATTEMPT + 1))
-                echo "Attempt #$ATTEMPT failed, retrying..."
+                if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+                        echo "$WARN Attempt #$ATTEMPT failed, retrying..."
+                fi
         else
                 break
         fi
 done
 
+# Report what survived the retries instead of going quiet
+if [ $MISSING_PACKAGE_COUNT -gt 0 ]; then
+        echo "$ERROR Gave up after $MAX_ATTEMPTS attempts. These packages are still installed:"
+        while read -r package; do
+                if pacman -Qi "$package" &>/dev/null; then
+                        echo " - ${YELLOW}$package${RESET}"
+                fi
+        done <"$SELECTED_PACKAGES_FILE"
+fi
+
 printf "\n%.0s" {1..1}
 printf "\n%s${SKY_BLUE}Attempting to remove locally installed packages${RESET}\n" "${NOTE}"
 for file in ags pokemon-colorscripts; do
         if [ -f "/usr/local/bin/$file" ]; then
-                sudo rm "/usr/local/bin/$file"
-                echo "$file removed."
+                if sudo rm "/usr/local/bin/$file"; then
+                        echo "$file removed."
+                else
+                        echo "$ERROR Failed to remove /usr/local/bin/$file"
+                        failed_local+=("/usr/local/bin/$file")
+                fi
         fi
 done
 
 printf "\n%.0s" {1..1}
 printf "\n%s${SKY_BLUE}Attempting to remove selected directories${RESET}\n" "${NOTE}"
-remove_directories /tmp/selected_directories.txt
+remove_directories "$SELECTED_DIRECTORIES_FILE"
 
 printf "\n%.0s" {1..1}
-echo -e "$MAGENTA Hyprland and related components have been uninstalled.$RESET"
+
+exit_code=0
+if [ ${#failed_packages[@]} -gt 0 ] || [ ${#failed_dirs[@]} -gt 0 ] || [ ${#failed_local[@]} -gt 0 ]; then
+        exit_code=1
+        printf "%s Some items could not be removed:\n" "$WARN"
+        for item in "${failed_packages[@]}"; do echo " - package: $item"; done
+        for item in "${failed_dirs[@]}"; do echo " - directory: $item"; done
+        for item in "${failed_local[@]}"; do echo " - file: $item"; done
+fi
+
+if [ $exit_code -eq 0 ]; then
+        echo -e "$MAGENTA Hyprland and related components have been uninstalled.$RESET"
+else
+        echo -e "$WARN Uninstall finished with errors. See the items listed above.$RESET"
+fi
 echo -e "$YELLOW It is recommended to reboot your system now.$RESET"
 printf "\n%.0s" {1..1}
+exit $exit_code

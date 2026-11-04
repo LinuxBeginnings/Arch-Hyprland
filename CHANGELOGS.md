@@ -1,5 +1,38 @@
 ## CHANGELOG
 
+## Nov 2026
+
+- Fixed:
+  - Package failures are reported instead of silently ignored
+    - Failed packages are recorded in `Install-Logs/.failed-packages`
+    - `install.sh` prints a summary of what failed and exits non-zero
+    - `uninstall.sh` reports the packages, directories, and binaries it could not remove and exits non-zero
+    - `uninstall.sh` removes its temporary selection files on exit, cancel, or Ctrl+C
+  - `install.sh`
+    - Preset options are now read correctly (they were always off)
+    - No longer restarts itself when the SDDM theme step fails, it warns and skips
+    - Fixed stale "edit line 211" message
+  - `02-Final-Check.sh`
+    - Undefined `${REST}` used for the reset color
+    - `rofi-wayland` replaced with `rofi`
+  - `uninstall.sh` package list uses `rofi`
+  - `pipewire.sh`
+    - Force reinstall loop used the old `$PIPEWIRE` list instead of `$PIPEWIRE2`
+  - `paru.sh`
+    - Log was written to `_yay.log`
+    - Now checks that an AUR helper was actually built
+  - `yay.sh` now checks that an AUR helper was actually built
+  - `01-hypr-pkgs.sh` checked `$?` after a pipeline, so failures were masked
+  - `wallust.sh`
+    - Exits with an error and cleans up when the package build fails
+    - No longer adds the repo when `pushd` fails
+  - `battery-monitor.sh` could report the wrong battery when more than one has a charge level
+  - `disk-monitor.sh` lost its mount list when reading it in a subshell
+  - `auto-install.sh` no longer continues when `git clone` fails
+  - `dotfiles-main.sh`, `gtk_themes.sh`, `paru.sh`, `yay.sh` now check `cd` before using the new directory
+  - `quickshell.sh` and `ags.sh` removed unused preset code calling an undefined function
+  - `README.md` rofi troubleshooting note now matches what the installer installs
+
 ## Oct 2026
 
 - Added:

@@ -13,7 +13,7 @@ pkg="paru-bin"
 
 ## WARNING: DO NOT EDIT BEYOND THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING! ##
 # Set the name of the log file to include the current date and time
-LOG="install-$(date +%d-%H%M%S)_yay.log"
+LOG="install-$(date +%d-%H%M%S)_paru.log"
 
 # Set some colors for output messages
 OK="$(tput setaf 2)[OK]$(tput sgr0)"
@@ -48,7 +48,7 @@ if [ -d "$pkg" ]; then
     rm -rf "$pkg"
 fi
   git clone https://aur.archlinux.org/$pkg.git || { printf "%s - Failed to clone ${YELLOW}$pkg${RESET} from AUR\n" "${ERROR}"; exit 1; }
-  cd $pkg || { printf "%s - Failed to enter $pkg directory\n" "${ERROR}"; exit 1; }
+  cd "$pkg" || { printf "%s - Failed to enter $pkg directory\n" "${ERROR}"; exit 1; }
   makepkg -si --noconfirm 2>&1 | tee -a "$LOG" || { printf "%s - Failed to install ${YELLOW}$pkg${RESET} from AUR\n" "${ERROR}"; exit 1; }
 
   # moving install logs in to Install-Logs directory
@@ -59,6 +59,10 @@ fi
 # Update system before proceeding
 printf "\n%s - Performing a full system update to avoid issues.... \n" "${NOTE}"
 ISAUR=$(command -v yay || command -v paru)
+if [ -z "$ISAUR" ]; then
+  printf "%s - AUR helper not found. Cannot continue.\n" "${ERROR}"
+  exit 1
+fi
 
 $ISAUR -Syu --noconfirm 2>&1 | tee -a "$LOG" || { printf "%s - Failed to update system\n" "${ERROR}"; exit 1; }
 

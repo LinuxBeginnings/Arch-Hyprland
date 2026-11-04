@@ -135,7 +135,8 @@ for PKG in "${uninstall[@]}"; do
     continue
   fi
   uninstall_package "$PKG" 2>&1 | tee -a "$LOG"
-  if [ $? -ne 0 ]; then
+  # $? would be tee's status here, so read the function's exit code from the pipeline
+  if [ "${PIPESTATUS[0]}" -ne 0 ]; then
     overall_failed=1
   fi
 done

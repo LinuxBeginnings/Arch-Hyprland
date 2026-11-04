@@ -39,6 +39,11 @@ show_progress() {
                       "○○○○○●○○○○" "○○○○○○●○○○" "○○○○○○○●○○" "○○○○○○○○●○" "○○○○○○○○○●") 
     local i=0
 
+    # Nothing to wait for (or a non-numeric pid): skip the spinner entirely
+    if ! [[ "$pid" =~ ^[0-9]+$ ]]; then
+        return 0
+    fi
+
     tput civis 
     printf "\r${NOTE} Installing ${YELLOW}%s${RESET} ..." "$package_name"
 
@@ -53,6 +58,16 @@ show_progress() {
 }
 
 
+# Package install failures are recorded here so install.sh can print a summary at
+# the end and exit non-zero instead of reporting success on an incomplete install.
+# The install functions still return 0 on purpose: they are called bare in scripts
+# that run under `set -e`, and one missing package must not abort the rest.
+FAILED_PACKAGES_FILE="Install-Logs/.failed-packages"
+
+record_package_failure() {
+  mkdir -p "${FAILED_PACKAGES_FILE%/*}" 2>/dev/null || true
+  printf '%s\n' "$1" >>"$FAILED_PACKAGES_FILE"
+}
 
 # Function to install packages with pacman
 install_package_pacman() {
@@ -71,14 +86,28 @@ install_package_pacman() {
     if pacman -Q "$1" &>/dev/null ; then
       echo -e "${OK} Package ${YELLOW}$1${RESET} has been successfully installed!"
     else
+      record_package_failure "$1"
       echo -e "\n${ERROR} ${YELLOW}$1${RESET} failed to install. Please check the $LOG. You may need to install manually."
     fi
   fi
 }
 
 ISAUR=$(command -v yay || command -v paru)
+
+# Fail loudly-but-safely when no AUR helper is available, instead of running an
+# empty command ("if -Q pkg" is a syntax error).
+require_aur_helper() {
+  if [ -z "$ISAUR" ]; then
+    echo -e "${ERROR} Neither ${YELLOW}yay${RESET} nor ${YELLOW}paru${RESET} is available. Skipping AUR package ${YELLOW}$1${RESET}."
+    return 1
+  fi
+  return 0
+}
+
 # Function to install packages with either yay or paru
 install_package() {
+  require_aur_helper "$1" || return 0
+
   if $ISAUR -Q "$1" &>> /dev/null ; then
     echo -e "${INFO} ${MAGENTA}$1${RESET} is already installed. Skipping..."
   else
@@ -93,6 +122,7 @@ install_package() {
       echo -e "${OK} Package ${YELLOW}$1${RESET} has been successfully installed!"
     else
       # Something is missing, exiting to review log
+      record_package_failure "$1"
       echo -e "\n${ERROR} ${YELLOW}$1${RESET} failed to install :( , please check the install.log. You may need to install manually! Sorry I have tried :("
     fi
   fi
@@ -100,6 +130,8 @@ install_package() {
 
 # Function to just install packages with either yay or paru without checking if installed
 install_package_f() {
+  require_aur_helper "$1" || return 0
+
   (
     stdbuf -oL $ISAUR -S --noconfirm "$1" 2>&1
   ) >> "$LOG" 2>&1 &

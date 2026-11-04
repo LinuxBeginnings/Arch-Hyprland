@@ -44,7 +44,10 @@ fi
 
 echo "$NOTE Cloning ${SKY_BLUE}GTK themes and Icons${RESET} repository..." 2>&1 | tee -a "$LOG"
 if git clone --depth=1 https://github.com/LinuxBeginnings/GTK-themes-icons.git ; then
-    cd GTK-themes-icons
+    cd GTK-themes-icons || {
+        echo "$ERROR Failed to change directory to GTK-themes-icons" 2>&1 | tee -a "$LOG"
+        exit 1
+    }
     chmod +x auto-extract.sh
     ./auto-extract.sh
     cd ..

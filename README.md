@@ -247,7 +247,7 @@ env = WLR_RENDERER_ALLOW_SOFTWARE,1
   > Auto start of Hyprland after login (no SDDM or GDM or any login managers)
 - [ ] This was disabled a few days ago. (19 May 2024). This was because some users, after they used the Distro-Hyprland scripts with other DE (gnome-wayland or plasma-wayland), if they choose to login into gnome-wayland for example, Hyprland is starting.
 - [ ] to avoid this, I disabled it. You can re-enable again by editing `~/.zprofile` . Remove all the # on the first lines
-- [ ] ROFI issues (scaling, unexplained scaling etc). This is most likely to experience if you are installing on a system where rofi is currently installed. To fix it uninstall rofi and install rofi-wayland . `sudo pacman -Rns rofi` . Install rofi-wayland with `sudo pacman -S rofi-wayland`. Rofi-wayland is compatible with x11 so no need to worry.
+- [ ] ROFI issues (scaling, unexplained scaling etc). This is most likely to experience if you are installing on a system where a conflicting rofi variant is already installed. This installer uses the `rofi` package, so remove any conflicting variants first, e.g. `sudo pacman -Rns rofi-wayland rofi-lbonn-wayland`, then install `rofi` with `sudo pacman -S rofi`. `rofi` is compatible with both wayland and x11 so no need to worry.
 
 #### 🫥 Improving performance for Older Nvidia Cards using driver 470
 

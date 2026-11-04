@@ -16,7 +16,7 @@ packages=(
   qt5-declarative
   qt5-quickcontrols2
   qt6-declarative
-  rofi-wayland
+  rofi
   imagemagick
   swaync
   awww
@@ -149,7 +149,7 @@ else
   if [ ${#local_missing[@]} -ne 0 ]; then
     echo "${WARN} The following local packages are missing from /usr/local/bin/ and will be logged:"
     for pkg1 in "${local_missing[@]}"; do
-      echo "${WARNING}$pkg1${REST} is not installed. Can't find it in /usr/local/bin/"
+      echo "${WARNING}$pkg1${RESET} is not installed. Can't find it in /usr/local/bin/ or PATH"
       echo "$pkg1" >>"$LOG"
     done
   fi

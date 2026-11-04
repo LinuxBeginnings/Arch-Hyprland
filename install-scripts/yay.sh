@@ -48,7 +48,7 @@ if [ -d "$pkg" ]; then
     rm -rf "$pkg"
 fi
   git clone https://aur.archlinux.org/$pkg.git || { printf "%s - Failed to clone ${YELLOW}$pkg${RESET} from AUR\n" "${ERROR}"; exit 1; }
-  cd $pkg || { printf "%s - Failed to enter $pkg directory\n" "${ERROR}"; exit 1; }
+  cd "$pkg" || { printf "%s - Failed to enter $pkg directory\n" "${ERROR}"; exit 1; }
   makepkg -si --noconfirm 2>&1 | tee -a "$LOG" || { printf "%s - Failed to install ${YELLOW}$pkg${RESET} from AUR\n" "${ERROR}"; exit 1; }
 
   # moving install logs in to Install-Logs directory
@@ -59,6 +59,10 @@ fi
 # Update system before proceeding
 printf "\n%s - Performing a full system update to avoid issues.... \n" "${NOTE}"
 ISAUR=$(command -v yay || command -v paru)
+if [ -z "$ISAUR" ]; then
+  printf "%s - AUR helper not found. Cannot continue.\n" "${ERROR}"
+  exit 1
+fi
 
 $ISAUR -Syu --noconfirm 2>&1 | tee -a "$LOG" || { printf "%s - Failed to update system\n" "${ERROR}"; exit 1; }
 

@@ -211,9 +211,22 @@ if [ -z "$PKG_DIR" ]; then
   exit 1
 fi
 
-pushd "$PKG_DIR" >/dev/null
-makepkg -si --noconfirm 2>&1 | tee -a "$LOG"
-popd >/dev/null
+pushd "$PKG_DIR" >/dev/null || {
+  echo -e "${ERROR} Failed to enter ${YELLOW}$PKG_DIR${RESET}."
+  rm -rf "$BUILD_DIR"
+  exit 1
+}
+
+# Keep the pipeline's first status; set -e would otherwise abort before cleanup
+makepkg -si --noconfirm 2>&1 | tee -a "$LOG" || true
+makepkg_status=${PIPESTATUS[0]}
+popd >/dev/null || true
+
+if [ "$makepkg_status" -ne 0 ]; then
+  echo -e "${ERROR} makepkg failed for wallust ${YELLOW}$TARGET_VERSION${RESET}. Please check ${YELLOW}$LOG${RESET}."
+  rm -rf "$BUILD_DIR"
+  exit 1
+fi
 
 rm -rf "$BUILD_DIR"
 

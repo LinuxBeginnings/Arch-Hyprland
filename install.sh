@@ -62,7 +62,7 @@ fi
 
 # Check if PulseAudio package is installed
 if pacman -Qq | grep -qw '^pulseaudio$'; then
-  echo "$ERROR PulseAudio is detected as installed. Uninstall it first or edit install.sh on line 211 (execute_script 'pipewire.sh')." | tee -a "$LOG"
+  echo "$ERROR PulseAudio is detected as installed. Uninstall it first or remove the 'pipewire.sh' call in install.sh." | tee -a "$LOG"
   printf "\n%.0s" {1..2}
   exit 1
 fi
@@ -130,6 +130,10 @@ fi
 # Path to the install-scripts directory
 script_directory=install-scripts
 WALLUST_STATUS_FILE="Install-Logs/.wallust-status"
+FAILED_PACKAGES_FILE="Install-Logs/.failed-packages"
+# Start every run with a clean failure report
+rm -f "$FAILED_PACKAGES_FILE"
+install_exit_code=0
 wallust_setup_failed=0
 dotfiles_paused_for_wallust=0
 declare -a deferred_non_fatal_failures=()
@@ -181,6 +185,15 @@ load_preset() {
 if [[ "$1" == "--preset" && -n "$2" ]]; then
   load_preset "$2"
 fi
+
+# Normalize a preset value into the ON/OFF states whiptail's checklist expects
+option_state() {
+  local value="${!1}"
+  case "${value,,}" in
+  1 | on | yes | true | y) echo "ON" ;;
+  *) echo "OFF" ;;
+  esac
+}
 
 # Check if yay or paru is installed
 echo "${INFO} - Checking if yay or paru is installed"
@@ -260,8 +273,8 @@ options_command=(
 # Add NVIDIA options if detected
 if [ "$nvidia_detected" == "true" ]; then
   options_command+=(
-    "nvidia" "Do you want script to configure NVIDIA GPU?" "OFF"
-    "nouveau" "Do you want Nouveau to be blacklisted?" "OFF"
+    "nvidia" "Do you want script to configure NVIDIA GPU?" "$(option_state nvidia)"
+    "nouveau" "Do you want Nouveau to be blacklisted?" "$(option_state nouveau)"
   )
 fi
 
@@ -275,27 +288,27 @@ fi
 # Add 'input_group' option if necessary
 if [ "$input_group_detected" == "true" ]; then
   options_command+=(
-    "input_group" "Add your USER to input group for some waybar functionality?" "OFF"
+    "input_group" "Add your USER to input group for some waybar functionality?" "$(option_state input_group)"
   )
 fi
 
 # Conditionally add SDDM and SDDM theme options if no active login manager is found
 if ! check_services_running; then
   options_command+=(
-    "sddm" "Install & configure SDDM login manager?" "OFF"
-    "sddm_theme" "Download & Install Additional SDDM theme?" "OFF"
+    "sddm" "Install & configure SDDM login manager?" "$(option_state sddm)"
+    "sddm_theme" "Download & Install Additional SDDM theme?" "$(option_state sddm_theme)"
   )
 fi
 
 # Add the remaining static options
 options_command+=(
-  "gtk_themes" "Install GTK themes? (required for Dark/Light function)" "OFF"
-  "bluetooth" "Do you want script to configure Bluetooth?" "OFF"
-  "thunar" "Do you want Thunar file manager to be installed?" "OFF"
-  "zsh" "Install zsh shell with Oh-My-Zsh?" "OFF"
-  "pokemon" "Add Pokemon color scripts to your terminal?" "OFF"
-  "rog" "Are you installing on Asus ROG laptops?" "OFF"
-  "dots" "Download and install pre-configured KooL Hyprland dotfiles?" "OFF"
+  "gtk_themes" "Install GTK themes? (required for Dark/Light function)" "$(option_state gtk_themes)"
+  "bluetooth" "Do you want script to configure Bluetooth?" "$(option_state bluetooth)"
+  "thunar" "Do you want Thunar file manager to be installed?" "$(option_state thunar)"
+  "zsh" "Install zsh shell with Oh-My-Zsh?" "$(option_state zsh)"
+  "pokemon" "Add Pokemon color scripts to your terminal?" "$(option_state pokemon)"
+  "rog" "Are you installing on Asus ROG laptops?" "$(option_state rog)"
+  "dots" "Download and install pre-configured KooL Hyprland dotfiles?" "$(option_state dots)"
 )
 
 # Capture the selected options before the while loop starts
@@ -468,8 +481,8 @@ for option in "${options[@]}"; do
   sddm)
     if check_services_running; then
       active_list=$(printf "%s\n" "${active_services[@]}")
-      whiptail --title "Error" --msgbox "One of the following login services is running:\n$active_list\n\nPlease stop & disable it or DO not choose SDDM." 12 60
-      exec "$0"
+      whiptail --title "Error" --msgbox "One of the following login services is running:\n$active_list\n\nPlease stop & disable it or DO not choose SDDM.\n\nSDDM installation will be skipped." 12 60
+      echo "${WARN} Skipping SDDM: stop and disable the login manager(s) above, then rerun the installer with the SDDM option." | tee -a "$LOG"
     else
       echo "${INFO} Installing and configuring ${SKY_BLUE}SDDM...${RESET}" | tee -a "$LOG"
       execute_script "sddm.sh"
@@ -554,6 +567,17 @@ if [ ${#deferred_non_fatal_failures[@]} -gt 0 ]; then
   fi
 fi
 
+# Packages that failed to install were recorded by Global_functions.sh
+if [ -s "$FAILED_PACKAGES_FILE" ]; then
+  mapfile -t failed_packages < <(sort -u "$FAILED_PACKAGES_FILE")
+  printf "\n%s %d package(s) failed to install during this run:\n" "${ERROR}" "${#failed_packages[@]}" | tee -a "$LOG"
+  for failed_pkg in "${failed_packages[@]}"; do
+    printf "  - %s\n" "$failed_pkg" | tee -a "$LOG"
+  done
+  printf "%s Install them manually, or fix the cause (details in %s) and rerun the installer. Exiting with an error status.\n" "${NOTE}" "$LOG" | tee -a "$LOG"
+  install_exit_code=1
+fi
+
 printf "\n%.0s" {1..1}
 
 # Check if hyprland or hyprland-git is installed
@@ -599,3 +623,6 @@ else
 fi
 
 printf "\n%.0s" {1..2}
+
+# Non-zero when packages failed to install, so wrappers/auto-install can react
+exit "$install_exit_code"

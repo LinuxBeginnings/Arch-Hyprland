@@ -8,10 +8,6 @@
 # 💫 https://github.com/LinuxBeginnings 💫 #
 # quickshell - for desktop overview replacing AGS
 
-if [[ $USE_PRESET = [Yy] ]]; then
-  source ./preset.sh
-fi
-
 quick=(
     qt6-5compat
     quickshell

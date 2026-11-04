@@ -56,8 +56,10 @@ declare -A NOTIFIED_WARNING
 declare -A NOTIFIED_CRITICAL
 
 while true; do
-    # Get disk usage for all mounted filesystems
-    df -h | grep '^/dev/' | while read -r line; do
+    # Get disk usage for all mounted filesystems.
+    # Read via process substitution (not a pipe) so NOTIFIED_* state survives each
+    # poll, and use -P so wide device names are not wrapped onto a second line.
+    while read -r line; do
         DEVICE=$(echo "$line" | awk '{print $1}')
         MOUNT=$(echo "$line" | awk '{print $6}')
         USAGE=$(echo "$line" | awk '{print $5}' | sed 's/%//')
@@ -86,8 +88,8 @@ while true; do
                 NOTIFIED_CRITICAL[$MOUNT]="false"
             fi
         fi
-    done
-    
+    done < <(df -hP | grep '^/dev/')
+
     sleep "$CHECK_INTERVAL"
 done
 EOF
