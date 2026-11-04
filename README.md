@@ -84,6 +84,11 @@ https://github.com/user-attachments/assets/49bc12b2-abaf-45de-a21c-67aacd9bb872
 
 - inside the install-scripts directory, you can edit 00-hypr-pkgs.sh. Care though as the Hyprland Dots may not work properly!
 
+#### 🧪 Preview an install first
+
+- `./install.sh --dry-run` prints the options it would use and the scripts it would run, without installing, removing or writing anything.
+- Add `--preset <file>` to see the run with your preset values instead of the checklist, e.g. `./install.sh --preset my-preset --dry-run`.
+
 #### 🚩 Switching to SDDM assuming you have GDM installed and running
 
 - if you really want switch to SDDM from GDM, you need to disable the gdm first.

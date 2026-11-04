@@ -10,21 +10,9 @@
 
 set -e
 
-# Set some colors for output messages
-OK="$(tput setaf 2)[OK]$(tput sgr0)"
-ERROR="$(tput setaf 1)[ERROR]$(tput sgr0)"
-NOTE="$(tput setaf 3)[NOTE]$(tput sgr0)"
-INFO="$(tput setaf 4)[INFO]$(tput sgr0)"
-WARN="$(tput setaf 1)[WARN]$(tput sgr0)"
-CAT="$(tput setaf 6)[ACTION]$(tput sgr0)"
-MAGENTA="$(tput setaf 5)"
-ORANGE="$(tput setaf 214)"
-WARNING="$(tput setaf 1)"
-YELLOW="$(tput setaf 3)"
-GREEN="$(tput setaf 2)"
-BLUE="$(tput setaf 4)"
-SKY_BLUE="$(tput setaf 6)"
-RESET="$(tput sgr0)"
+# Shared color definitions
+# shellcheck source=colours.sh
+source "$(dirname "${BASH_SOURCE[0]}")/colours.sh"
 
 # Create Directory for Install Logs
 if [ ! -d Install-Logs ]; then
@@ -69,10 +57,30 @@ record_package_failure() {
   printf '%s\n' "$1" >>"$FAILED_PACKAGES_FILE"
 }
 
+# One `pacman -Qq` for the whole run instead of one `pacman -Q` per package, so a
+# rerun on an already installed system spends its time installing, not querying.
+INSTALLED_PACKAGES_CACHE=""
+INSTALLED_PACKAGES_LOADED=0
+
+package_is_installed() {
+  if [ "$INSTALLED_PACKAGES_LOADED" -eq 0 ]; then
+    INSTALLED_PACKAGES_CACHE=" $(pacman -Qq 2>/dev/null | tr '\n' ' ') "
+    INSTALLED_PACKAGES_LOADED=1
+  fi
+
+  # Quoted, so a package name is matched literally and not as a glob
+  case "$INSTALLED_PACKAGES_CACHE" in
+  *" $1 "*) return 0 ;;
+  esac
+
+  # Not in the snapshot, it may have been installed after it was taken
+  pacman -Q "$1" &>/dev/null
+}
+
 # Function to install packages with pacman
 install_package_pacman() {
   # Check if package is already installed
-  if pacman -Q "$1" &>/dev/null ; then
+  if package_is_installed "$1" ; then
     echo -e "${INFO} ${MAGENTA}$1${RESET} is already installed. Skipping..."
   else
     # Run pacman and redirect all output to a log file
@@ -84,6 +92,7 @@ install_package_pacman() {
 
     # Double check if package is installed
     if pacman -Q "$1" &>/dev/null ; then
+      INSTALLED_PACKAGES_CACHE=" ${INSTALLED_PACKAGES_CACHE} $1 "
       echo -e "${OK} Package ${YELLOW}$1${RESET} has been successfully installed!"
     else
       record_package_failure "$1"
@@ -108,7 +117,7 @@ require_aur_helper() {
 install_package() {
   require_aur_helper "$1" || return 0
 
-  if $ISAUR -Q "$1" &>> /dev/null ; then
+  if package_is_installed "$1" ; then
     echo -e "${INFO} ${MAGENTA}$1${RESET} is already installed. Skipping..."
   else
     (
@@ -119,6 +128,7 @@ install_package() {
     
     # Double check if package is installed
     if $ISAUR -Q "$1" &>> /dev/null ; then
+      INSTALLED_PACKAGES_CACHE=" ${INSTALLED_PACKAGES_CACHE} $1 "
       echo -e "${OK} Package ${YELLOW}$1${RESET} has been successfully installed!"
     else
       # Something is missing, exiting to review log
@@ -140,6 +150,7 @@ install_package_f() {
 
   # Double check if package is installed
   if $ISAUR -Q "$1" &>> /dev/null ; then
+    INSTALLED_PACKAGES_CACHE=" ${INSTALLED_PACKAGES_CACHE} $1 "
     echo -e "${OK} Package ${YELLOW}$1${RESET} has been successfully installed!"
   else
     # Something is missing, exiting to review log

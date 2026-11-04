@@ -2,6 +2,18 @@
 
 ## Nov 2026
 
+- Added:
+  - `install.sh --dry-run`
+    - Prints the options it would use and the scripts it would run
+    - Installs, removes and writes nothing, not even a log file
+  - `install.sh --preset <file>` is documented in the README
+
+- Changed:
+  - Color definitions moved to `install-scripts/colours.sh`
+    - Was copied into `install.sh`, `uninstall.sh`, `auto-install.sh`, `yay.sh`, `paru.sh` and `Global_functions.sh`
+  - Package checks use one `pacman -Qq` snapshot
+    - Previously one `pacman -Q` per package, which made reruns slower
+
 - Fixed:
   - Package failures are reported instead of silently ignored
     - Failed packages are recorded in `Install-Logs/.failed-packages`

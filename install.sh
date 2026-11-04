@@ -7,21 +7,9 @@
 # ==================================================
 # https://github.com/LinuxBeginnings
 
-# Set some colors for output messages
-OK="$(tput setaf 2)[OK]$(tput sgr0)"
-ERROR="$(tput setaf 1)[ERROR]$(tput sgr0)"
-NOTE="$(tput setaf 3)[NOTE]$(tput sgr0)"
-INFO="$(tput setaf 4)[INFO]$(tput sgr0)"
-WARN="$(tput setaf 1)[WARN]$(tput sgr0)"
-CAT="$(tput setaf 6)[ACTION]$(tput sgr0)"
-MAGENTA="$(tput setaf 5)"
-ORANGE="$(tput setaf 214)"
-WARNING="$(tput setaf 1)"
-YELLOW="$(tput setaf 3)"
-GREEN="$(tput setaf 2)"
-BLUE="$(tput setaf 4)"
-SKY_BLUE="$(tput setaf 6)"
-RESET="$(tput sgr0)"
+# Shared color definitions
+# shellcheck source=install-scripts/colours.sh
+source "$(dirname "$(readlink -f "$0")")/install-scripts/colours.sh"
 
 # Set a high-contrast whiptail theme unless the user already provided one
 if [ -z "${NEWT_COLORS:-}" ]; then
@@ -53,6 +41,37 @@ fi
 # Set the name of the log file to include the current date and time
 LOG="Install-Logs/01-Hyprland-Install-Scripts-$(date +%d-%H%M%S).log"
 
+# --preset <file> pre-fills the checklist, --dry-run only reports what would be
+# done without installing, removing or writing anything
+PRESET_FILE=""
+DRY_RUN=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --preset)
+    PRESET_FILE="${2:-}"
+    if [ -z "$PRESET_FILE" ]; then
+      echo "${ERROR} --preset needs a file name"
+      exit 1
+    fi
+    shift 2
+    ;;
+  --dry-run)
+    DRY_RUN=1
+    shift
+    ;;
+  *)
+    echo "${ERROR} Unknown option: $1"
+    echo "${NOTE} Usage: $0 [--preset <file>] [--dry-run]"
+    exit 1
+    ;;
+  esac
+done
+
+# A dry run must not write anything, log included
+if [ "$DRY_RUN" -eq 1 ]; then
+  LOG="/dev/null"
+fi
+
 # Check if running as root. If root, script will exit
 if [[ $EUID -eq 0 ]]; then
   echo "${ERROR}  This script should ${WARNING}NOT${RESET} be executed as root!! Exiting......." | tee -a "$LOG"
@@ -70,6 +89,8 @@ fi
 # Check if base-devel is installed
 if pacman -Q base-devel &>/dev/null; then
   echo "base-devel is already installed."
+elif [ "$DRY_RUN" -eq 1 ]; then
+  echo "${NOTE} base-devel would be installed."
 else
   echo "$NOTE Install base-devel.........."
 
@@ -84,9 +105,13 @@ fi
 
 # install whiptails if detected not installed. Necessary for this version
 if ! command -v whiptail >/dev/null; then
-  echo "${NOTE} - whiptail is not installed. Installing..." | tee -a "$LOG"
-  sudo pacman -S --noconfirm libnewt
-  printf "\n%.0s" {1..1}
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "${NOTE} - whiptail is not installed. libnewt would be installed."
+  else
+    echo "${NOTE} - whiptail is not installed. Installing..." | tee -a "$LOG"
+    sudo pacman -S --noconfirm libnewt
+    printf "\n%.0s" {1..1}
+  fi
 fi
 
 clear
@@ -99,20 +124,24 @@ echo -e "\e[35m
 \e[0m"
 printf "\n%.0s" {1..1}
 
-# Welcome message using whiptail (for displaying information)
-whiptail --title "KooL Arch-Hyprland (2026) Install Script" \
-  --msgbox "Welcome to KooL Arch-Hyprland (2026) Install Script!!!\n\n\
+if [ "$DRY_RUN" -eq 1 ]; then
+  echo "${SKY_BLUE}[DRY-RUN]${RESET} Nothing will be installed, removed or written."
+else
+  # Welcome message using whiptail (for displaying information)
+  whiptail --title "KooL Arch-Hyprland (2026) Install Script" \
+    --msgbox "Welcome to KooL Arch-Hyprland (2026) Install Script!!!\n\n\
 ATTENTION: Run a full system update and Reboot first !!! (Highly Recommended)\n\n\
 NOTE: If you are installing on a VM, ensure to enable 3D acceleration else Hyprland may NOT start!" \
-  15 80
+    15 80
 
-# Ask if the user wants to proceed
-if ! whiptail --title "Proceed with Installation?" \
-  --yesno "Would you like to proceed?" 7 50; then
-  echo -e "\n"
-  echo "❌ ${INFO} You 🫵 chose ${YELLOW}NOT${RESET} to proceed. ${YELLOW}Exiting...${RESET}" | tee -a "$LOG"
-  echo -e "\n"
-  exit 1
+  # Ask if the user wants to proceed
+  if ! whiptail --title "Proceed with Installation?" \
+    --yesno "Would you like to proceed?" 7 50; then
+    echo -e "\n"
+    echo "❌ ${INFO} You 🫵 chose ${YELLOW}NOT${RESET} to proceed. ${YELLOW}Exiting...${RESET}" | tee -a "$LOG"
+    echo -e "\n"
+    exit 1
+  fi
 fi
 
 echo "👌 ${OK} 🇵🇭 ${MAGENTA}KooL..${RESET} ${SKY_BLUE}lets continue with the installation...${RESET}" | tee -a "$LOG"
@@ -122,17 +151,23 @@ printf "\n%.0s" {1..1}
 
 # install pciutils if detected not installed. Necessary for detecting GPU
 if ! pacman -Qs pciutils >/dev/null; then
-  echo "${NOTE} - pciutils is not installed. Installing..." | tee -a "$LOG"
-  sudo pacman -S --noconfirm pciutils
-  printf "\n%.0s" {1..1}
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "${NOTE} - pciutils is not installed. It would be installed."
+  else
+    echo "${NOTE} - pciutils is not installed. Installing..." | tee -a "$LOG"
+    sudo pacman -S --noconfirm pciutils
+    printf "\n%.0s" {1..1}
+  fi
 fi
 
 # Path to the install-scripts directory
 script_directory=install-scripts
 WALLUST_STATUS_FILE="Install-Logs/.wallust-status"
 FAILED_PACKAGES_FILE="Install-Logs/.failed-packages"
-# Start every run with a clean failure report
-rm -f "$FAILED_PACKAGES_FILE"
+# Start every run with a clean failure report (a dry run keeps the last one)
+if [ "$DRY_RUN" -eq 0 ]; then
+  rm -f "$FAILED_PACKAGES_FILE"
+fi
 install_exit_code=0
 wallust_setup_failed=0
 dotfiles_paused_for_wallust=0
@@ -143,8 +178,12 @@ execute_script() {
   local script="$1"
   local script_path="$script_directory/$script"
   if [ -f "$script_path" ]; then
-    chmod +x "$script_path"
-    if [ -x "$script_path" ]; then
+    [ "$DRY_RUN" -eq 1 ] || chmod +x "$script_path"
+    if [ -x "$script_path" ] || [ "$DRY_RUN" -eq 1 ]; then
+      if [ "$DRY_RUN" -eq 1 ]; then
+        echo "${SKY_BLUE}[DRY-RUN]${RESET} would run ${YELLOW}$script_path${RESET}"
+        return 0
+      fi
       bash "$script_path"
       return $?
     else
@@ -181,9 +220,9 @@ load_preset() {
   fi
 }
 
-# Check if --preset argument is passed
-if [[ "$1" == "--preset" && -n "$2" ]]; then
-  load_preset "$2"
+# Load the preset given with --preset, if any
+if [ -n "$PRESET_FILE" ]; then
+  load_preset "$PRESET_FILE"
 fi
 
 # Normalize a preset value into the ON/OFF states whiptail's checklist expects
@@ -200,6 +239,11 @@ echo "${INFO} - Checking if yay or paru is installed"
 if ! command -v yay &>/dev/null && ! command -v paru &>/dev/null; then
   echo "${CAT} - Neither yay nor paru found. Asking 🗣️ USER to select..."
   while true; do
+    if [ "$DRY_RUN" -eq 1 ]; then
+      echo "${SKY_BLUE}[DRY-RUN]${RESET} an AUR helper (yay or paru) would be selected and installed."
+      break
+    fi
+
     aur_helper=$(whiptail --title "Neither Yay nor Paru is installed" --checklist "Neither Yay nor Paru is installed. Choose one AUR.\n\nNOTE: Select only 1 AUR helper!\nINFO: spacebar to select" 12 60 2 \
       "yay" "AUR Helper yay" "OFF" \
       "paru" "AUR Helper paru" "OFF" \
@@ -254,15 +298,23 @@ if check_services_running; then
   active_list=$(printf "%s\n" "${active_services[@]}")
 
   # Display the active login manager(s) in the whiptail message box
-  whiptail --title "Active non-SDDM login manager(s) detected" \
-    --msgbox "The following login manager(s) are active:\n\n$active_list\n\nIf you want to install SDDM and SDDM theme, stop and disable the active services above, reboot before running this script\n\nYour option to install SDDM and SDDM theme has now been removed\n\n- Ja " 23 80
+  if [ "$DRY_RUN" -eq 0 ]; then
+    whiptail --title "Active non-SDDM login manager(s) detected" \
+      --msgbox "The following login manager(s) are active:\n\n$active_list\n\nIf you want to install SDDM and SDDM theme, stop and disable the active services above, reboot before running this script\n\nYour option to install SDDM and SDDM theme has now been removed\n\n- Ja " 23 80
+  else
+    printf "%s active login manager(s):\n%s\n" "${SKY_BLUE}[DRY-RUN]${RESET}" "$active_list"
+  fi
 fi
 
 # Check if NVIDIA GPU is detected
 nvidia_detected=false
 if lspci | grep -i "nvidia" &>/dev/null; then
   nvidia_detected=true
-  whiptail --title "NVIDIA GPU Detected" --msgbox "NVIDIA GPU detected in your system.\n\nNOTE: The script will install nvidia-dkms, nvidia-utils, and nvidia-settings if you chose to configure." 12 60
+  if [ "$DRY_RUN" -eq 0 ]; then
+    whiptail --title "NVIDIA GPU Detected" --msgbox "NVIDIA GPU detected in your system.\n\nNOTE: The script will install nvidia-dkms, nvidia-utils, and nvidia-settings if you chose to configure." 12 60
+  else
+    echo "${SKY_BLUE}[DRY-RUN]${RESET} NVIDIA GPU detected."
+  fi
 fi
 
 # Initialize the options array for whiptail checklist
@@ -282,7 +334,11 @@ fi
 input_group_detected=false
 if ! groups "$(whoami)" | grep -q '\binput\b'; then
   input_group_detected=true
-  whiptail --title "Input Group" --msgbox "You are not currently in the input group.\n\nAdding you to the input group might be necessary for the Waybar keyboard-state functionality." 12 60
+  if [ "$DRY_RUN" -eq 0 ]; then
+    whiptail --title "Input Group" --msgbox "You are not currently in the input group.\n\nAdding you to the input group might be necessary for the Waybar keyboard-state functionality." 12 60
+  else
+    echo "${SKY_BLUE}[DRY-RUN]${RESET} your user is not in the input group."
+  fi
 fi
 
 # Add 'input_group' option if necessary
@@ -313,6 +369,20 @@ options_command+=(
 
 # Capture the selected options before the while loop starts
 while true; do
+  # A dry run has nobody to answer the checklist: take the preset values instead
+  if [ "$DRY_RUN" -eq 1 ]; then
+    selected_options=""
+    for dry_option in nvidia nouveau input_group sddm sddm_theme gtk_themes bluetooth thunar zsh pokemon rog dots; do
+      if [ "$(option_state "$dry_option")" == "ON" ]; then
+        selected_options+="$dry_option "
+      fi
+    done
+    selected_options="${selected_options% }"
+    printf "%s options from preset: %s\n" "${SKY_BLUE}[DRY-RUN]${RESET}" "${selected_options:-none}"
+    IFS=' ' read -r -a options <<<"$selected_options"
+    break
+  fi
+
   selected_options=$("${options_command[@]}" 3>&1 1>&2 2>&3)
 
   # Check if the user pressed Cancel (exit status 1)
@@ -414,7 +484,10 @@ execute_script "01-hypr-pkgs.sh" || {
 }
 sleep 1
 
-if [ -f "$WALLUST_STATUS_FILE" ]; then
+if [ "$DRY_RUN" -eq 1 ]; then
+  # The marker belongs to an earlier run, a dry run has no wallust result yet
+  wallust_setup_failed=0
+elif [ -f "$WALLUST_STATUS_FILE" ]; then
   wallust_status="$(tr -d '[:space:]' <"$WALLUST_STATUS_FILE")"
   if [ "$wallust_status" = "failed" ]; then
     wallust_setup_failed=1
@@ -481,7 +554,9 @@ for option in "${options[@]}"; do
   sddm)
     if check_services_running; then
       active_list=$(printf "%s\n" "${active_services[@]}")
-      whiptail --title "Error" --msgbox "One of the following login services is running:\n$active_list\n\nPlease stop & disable it or DO not choose SDDM.\n\nSDDM installation will be skipped." 12 60
+      if [ "$DRY_RUN" -eq 0 ]; then
+        whiptail --title "Error" --msgbox "One of the following login services is running:\n$active_list\n\nPlease stop & disable it or DO not choose SDDM.\n\nSDDM installation will be skipped." 12 60
+      fi
       echo "${WARN} Skipping SDDM: stop and disable the login manager(s) above, then rerun the installer with the SDDM option." | tee -a "$LOG"
     else
       echo "${INFO} Installing and configuring ${SKY_BLUE}SDDM...${RESET}" | tee -a "$LOG"
@@ -534,7 +609,7 @@ for option in "${options[@]}"; do
       dotfiles_paused_for_wallust=1
       deferred_non_fatal_failures+=("dotfiles installation paused because wallust setup failed")
       echo "${WARN} Dotfiles installation paused because wallust compatibility setup failed." | tee -a "$LOG"
-      if command -v whiptail >/dev/null 2>&1; then
+      if command -v whiptail >/dev/null 2>&1 && [ "$DRY_RUN" -eq 0 ]; then
         whiptail --title "Dotfiles Paused" --msgbox "wallust compatibility setup failed earlier.\n\nDotfiles installation has been paused to avoid an incomplete theming setup.\n\nFix wallust first, then rerun with only the dots option or run install-scripts/dotfiles-main.sh manually." 14 90
       fi
       continue
@@ -557,6 +632,11 @@ clear
 
 # final check essential packages if it is installed
 execute_script "02-Final-Check.sh"
+
+if [ "$DRY_RUN" -eq 1 ]; then
+  printf "\n%s Dry run finished. Nothing was installed, removed or written.\n" "${SKY_BLUE}[DRY-RUN]${RESET}"
+  exit 0
+fi
 if [ ${#deferred_non_fatal_failures[@]} -gt 0 ]; then
   printf "\n%s - Installation completed with non-fatal issues:\n" "${WARN}" | tee -a "$LOG"
   for issue in "${deferred_non_fatal_failures[@]}"; do
