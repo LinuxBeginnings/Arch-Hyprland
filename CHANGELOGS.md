@@ -13,6 +13,8 @@
     - Was copied into `install.sh`, `uninstall.sh`, `auto-install.sh`, `yay.sh`, `paru.sh` and `Global_functions.sh`
   - Package checks use one `pacman -Qq` snapshot
     - Previously one `pacman -Q` per package, which made reruns slower
+  - `install.sh` completion message now tells users to start Hyprland with `start-hyprland`
+    - Was the outdated `Hyprland` command, along with a note about the capital `H`
 
 - Fixed:
   - Package failures are reported instead of silently ignored

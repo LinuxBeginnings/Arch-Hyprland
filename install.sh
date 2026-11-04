@@ -670,7 +670,7 @@ if pacman -Q hyprland &>/dev/null || pacman -Q hyprland-git &>/dev/null; then
   printf "${SKY_BLUE}Thank you${RESET} 🫰 for using 🇵🇭 ${MAGENTA}KooL's Hyprland Dots${RESET}. ${YELLOW}Enjoy and Have a good day!${RESET}"
   printf "\n%.0s" {1..2}
 
-  printf "\n${NOTE} You can start Hyprland by typing ${SKY_BLUE}Hyprland${RESET} (IF SDDM is not installed) (note the capital H!).\n"
+  printf "\n${NOTE} You can start Hyprland by typing ${SKY_BLUE}start-hyprland${RESET} (IF SDDM is not installed).\n"
   printf "\n${NOTE} However, it is ${YELLOW}highly recommended to reboot${RESET} your system.\n\n"
 
   while true; do
