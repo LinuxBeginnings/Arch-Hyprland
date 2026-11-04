@@ -15,6 +15,12 @@
     - Previously one `pacman -Q` per package, which made reruns slower
   - `install.sh` completion message now tells users to start Hyprland with `start-hyprland`
     - Was the outdated `Hyprland` command, along with a note about the capital `H`
+  - Arch installs `waybar-git` instead of the repo `waybar`
+    - The repo `waybar` is removed first, as `waybar-git` conflicts with it
+    - `uninstall.sh` offers both `waybar` and `waybar-git`
+  - `02-Final-Check.sh` reports the `waybar -v` build tag
+    - Shows the exact revision, e.g. `Waybar v0.15.0-1100-gf6f73c81 (branch 'master')`
+    - Accepts either `waybar` or `waybar-git` as installed
 
 - Fixed:
   - Package failures are reported instead of silently ignored
