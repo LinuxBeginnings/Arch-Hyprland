@@ -66,18 +66,18 @@ NOTIFIED_GPU_CRIT=false
 
 while true; do
     # Get CPU temperature (average of all cores)
-    CPU_TEMP=$(sensors | grep -i 'Package id 0:\|Tdie:' | awk '{print $4}' | sed 's/+//;s/°C//' | head -1)
+    CPU_TEMP=$(sensors 2>/dev/null | grep -i 'Package id 0:\|Tdie:' | awk '{print $4}' | sed 's/+//;s/°C//' | head -1)
     
     # If Package id not found, try other methods
     if [ -z "$CPU_TEMP" ]; then
-        CPU_TEMP=$(sensors | grep -i 'Core 0:' | awk '{print $3}' | sed 's/+//;s/°C//' | head -1)
+        CPU_TEMP=$(sensors 2>/dev/null | grep -i 'Core 0:' | awk '{print $3}' | sed 's/+//;s/°C//' | head -1)
     fi
     
-    # Get GPU temperature (if available)
-    GPU_TEMP=$(sensors | grep -i 'edge:\|temp1:' | awk '{print $2}' | sed 's/+//;s/°C//' | head -1)
+    # Get GPU temperature (edge/junction are GPU sensors; temp1 can be an NVMe drive)
+    GPU_TEMP=$(sensors 2>/dev/null | grep -iE 'edge:|junction:|^GPU' | awk '{print $2}' | sed 's/+//;s/°C//' | head -1)
     
-    # Check CPU temperature
-    if [ -n "$CPU_TEMP" ]; then
+    # Check CPU temperature (ignore non-numeric sensor output)
+    if [[ "$CPU_TEMP" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
         CPU_TEMP_INT=${CPU_TEMP%.*}
         
         if [ "$CPU_TEMP_INT" -ge "$CPU_TEMP_CRITICAL" ]; then
@@ -97,8 +97,8 @@ while true; do
         fi
     fi
     
-    # Check GPU temperature
-    if [ -n "$GPU_TEMP" ]; then
+    # Check GPU temperature (ignore non-numeric sensor output)
+    if [[ "$GPU_TEMP" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
         GPU_TEMP_INT=${GPU_TEMP%.*}
         
         if [ "$GPU_TEMP_INT" -ge "$GPU_TEMP_CRITICAL" ]; then

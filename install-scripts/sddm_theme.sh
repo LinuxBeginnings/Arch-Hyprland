@@ -45,18 +45,22 @@ fi
 
 # Clone the repository
 if git clone --depth=1 "$source_theme" "$theme_name"; then
-  if [ ! -d "$theme_name" ]; then
-    echo "${ERROR} Failed to clone the repository." | tee -a "$LOG"
-  fi
-
   # Create themes directory if it doesn't exist
   if [ ! -d "/usr/share/sddm/themes" ]; then
-    sudo mkdir -p /usr/share/sddm/themes
-    echo "${OK} - Directory '/usr/share/sddm/themes' created." | tee -a "$LOG"
+    if sudo mkdir -p /usr/share/sddm/themes; then
+      echo "${OK} - Directory '/usr/share/sddm/themes' created." | tee -a "$LOG"
+    else
+      echo "${ERROR} - Could not create /usr/share/sddm/themes." | tee -a "$LOG"
+      exit 1
+    fi
   fi
 
   # Move cloned theme to the themes directory
-  sudo mv "$theme_name" "/usr/share/sddm/themes/$theme_name" 2>&1 | tee -a "$LOG"
+  # shellcheck disable=SC2024 # the log file is owned by the invoking user
+  if ! sudo mv "$theme_name" "/usr/share/sddm/themes/$theme_name" >>"$LOG" 2>&1; then
+    echo "${ERROR} - Could not move the theme to /usr/share/sddm/themes." | tee -a "$LOG"
+    exit 1
+  fi
 
   # setting up SDDM theme
   sddm_conf="/etc/sddm.conf"
@@ -111,6 +115,7 @@ if git clone --depth=1 "$source_theme" "$theme_name"; then
 else
 
   echo "${ERROR} - Failed to clone the sddm theme repository. Please check your internet connection." | tee -a "$LOG" >&2
+  exit 1
 fi
 
 printf "\n%.0s" {1..2}

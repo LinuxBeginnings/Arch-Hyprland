@@ -28,6 +28,19 @@ LOG="Install-Logs/install-$(date +%d-%H%M%S)_pacman.log"
 echo -e "${NOTE} Adding ${MAGENTA}Extra Spice${RESET} in pacman.conf ... ${RESET}" 2>&1 | tee -a "$LOG"
 pacman_conf="/etc/pacman.conf"
 
+if [ ! -r "$pacman_conf" ]; then
+    echo -e "${ERROR} Cannot read $pacman_conf."
+    exit 1
+fi
+
+# Always leave a way back: a broken pacman.conf breaks every later step
+pacman_backup="/etc/pacman.conf.bak-$(date +%Y%m%d-%H%M%S)"
+if sudo cp -a "$pacman_conf" "$pacman_backup"; then
+    echo -e "${OK} Backed up $pacman_conf to $pacman_backup" | tee -a "$LOG"
+else
+    echo -e "${WARN} Could not back up $pacman_conf; continuing without a backup." | tee -a "$LOG"
+fi
+
 # Remove comments '#' from specific lines
 lines_to_edit=(
     "Color"
@@ -39,8 +52,11 @@ lines_to_edit=(
 # Uncomment specified lines if they are commented out
 for line in "${lines_to_edit[@]}"; do
     if grep -q "^#$line" "$pacman_conf"; then
-        sudo sed -i "s/^#$line/$line/" "$pacman_conf"
-        echo -e "${CAT} Uncommented: $line ${RESET}" 2>&1 | tee -a "$LOG"
+        if sudo sed -i "s/^#$line/$line/" "$pacman_conf"; then
+            echo -e "${CAT} Uncommented: $line ${RESET}" 2>&1 | tee -a "$LOG"
+        else
+            echo -e "${WARN} Could not uncomment: $line ${RESET}" 2>&1 | tee -a "$LOG"
+        fi
     else
         echo -e "${CAT} $line is already uncommented. ${RESET}" 2>&1 | tee -a "$LOG"
     fi
@@ -48,10 +64,20 @@ done
 
 # Add "ILoveCandy" below ParallelDownloads if it doesn't exist
 if grep -q "^ParallelDownloads" "$pacman_conf" && ! grep -q "^ILoveCandy" "$pacman_conf"; then
-    sudo sed -i "/^ParallelDownloads/a ILoveCandy" "$pacman_conf"
-    echo -e "${CAT} Added ${MAGENTA}ILoveCandy${RESET} after ${MAGENTA}ParallelDownloads${RESET}. ${RESET}" 2>&1 | tee -a "$LOG"
+    if sudo sed -i "/^ParallelDownloads/a ILoveCandy" "$pacman_conf"; then
+        echo -e "${CAT} Added ${MAGENTA}ILoveCandy${RESET} after ${MAGENTA}ParallelDownloads${RESET}. ${RESET}" 2>&1 | tee -a "$LOG"
+    else
+        echo -e "${WARN} Could not add ILoveCandy." 2>&1 | tee -a "$LOG"
+    fi
 else
     echo -e "${CAT} It seems ${YELLOW}ILoveCandy${RESET} already exists ${RESET} moving on.." 2>&1 | tee -a "$LOG"
+fi
+
+# Validate the edited file and roll back instead of leaving pacman broken
+if command -v pacman-conf >/dev/null 2>&1 && ! sudo pacman-conf --config "$pacman_conf" >/dev/null 2>&1; then
+    echo -e "${ERROR} $pacman_conf is invalid after editing. Restoring the backup." | tee -a "$LOG"
+    sudo cp -a "$pacman_backup" "$pacman_conf"
+    exit 1
 fi
 
 echo -e "${CAT} ${MAGENTA}Pacman.conf${RESET} spicing up completed ${RESET}" 2>&1 | tee -a "$LOG"
@@ -59,6 +85,9 @@ echo -e "${CAT} ${MAGENTA}Pacman.conf${RESET} spicing up completed ${RESET}" 2>&
 
 # updating pacman.conf
 printf "\n%s - ${SKY_BLUE}Synchronizing Pacman Repo${RESET}\n" "${INFO}"
-sudo pacman -Sy
+if ! sudo pacman -Sy --noconfirm; then
+    echo -e "${ERROR} Could not synchronize the pacman databases." | tee -a "$LOG"
+    exit 1
+fi
 
 printf "\n%.0s" {1..2}

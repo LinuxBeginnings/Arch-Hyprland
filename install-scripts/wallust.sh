@@ -38,6 +38,11 @@ if [ ! -f "$ARCHIVE_PATH" ]; then
   exit 1
 fi
 
+if ! command -v makepkg >/dev/null 2>&1; then
+  echo -e "${ERROR} makepkg not found. Install base-devel before running this script."
+  exit 1
+fi
+
 installed_version=""
 get_wallust_version() {
   local raw_version=""
@@ -202,7 +207,17 @@ fi
 printf "%s - Installing ${SKY_BLUE}wallust ${TARGET_VERSION}${RESET} from bundled tarball... \n" "${NOTE}"
 
 BUILD_DIR="$(mktemp -d)"
-tar -xf "$ARCHIVE_PATH" -C "$BUILD_DIR"
+cleanup_build_dir() {
+  if [ -n "${BUILD_DIR:-}" ] && [ -d "$BUILD_DIR" ]; then
+    rm -rf "$BUILD_DIR"
+  fi
+}
+trap cleanup_build_dir EXIT INT TERM
+
+if ! tar -xf "$ARCHIVE_PATH" -C "$BUILD_DIR"; then
+  echo -e "${ERROR} Failed to extract ${YELLOW}$ARCHIVE_PATH${RESET}."
+  exit 1
+fi
 
 PKG_DIR="$(find "$BUILD_DIR" -maxdepth 1 -type d -name "wallust*" -print -quit)"
 if [ -z "$PKG_DIR" ]; then

@@ -47,41 +47,82 @@ fi
 
 # Install additional Nvidia packages
 printf "${YELLOW} Installing ${SKY_BLUE}Nvidia Packages and Linux headers${RESET}...\n"
-for krnl in $(cat /usr/lib/modules/*/pkgbase); do
-  for NVIDIA in "${krnl}-headers" "${nvidia_pkg[@]}"; do
-    install_package "$NVIDIA" "$LOG"
-  done
+kernel_pkgbases=()
+for pkgbase_file in /usr/lib/modules/*/pkgbase; do
+  [ -f "$pkgbase_file" ] || continue
+  kernel_pkgbases+=("$(cat "$pkgbase_file")")
+done
+if [ ${#kernel_pkgbases[@]} -eq 0 ]; then
+  warn "No kernel found in /usr/lib/modules/*/pkgbase; kernel headers were not installed."
+fi
+# Kernel headers once per installed kernel, then the Nvidia packages once
+for krnl in "${kernel_pkgbases[@]}"; do
+  install_package "${krnl}-headers" "$LOG"
+done
+for NVIDIA in "${nvidia_pkg[@]}"; do
+  install_package "$NVIDIA" "$LOG"
 done
 
 # Check if the Nvidia modules are already added in mkinitcpio.conf and add if not
-if grep -qE '^MODULES=.*nvidia. *nvidia_modeset.*nvidia_uvm.*nvidia_drm' /etc/mkinitcpio.conf; then
-  echo "Nvidia modules already included in /etc/mkinitcpio.conf" 2>&1 | tee -a "$LOG"
+MKINITCPIO_CONF="/etc/mkinitcpio.conf"
+if grep -qE '^MODULES=.*nvidia_drm' "$MKINITCPIO_CONF"; then
+  note "Nvidia modules are already included in $MKINITCPIO_CONF."
 else
-  sudo sed -Ei 's/^(MODULES=\([^\)]*)\)/\1 nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf 2>&1 | tee -a "$LOG"
-  echo "${OK} Nvidia modules added in /etc/mkinitcpio.conf"
+  MKINITCPIO_BACKUP="$MKINITCPIO_CONF.bak-$(date +%Y%m%d-%H%M%S)"
+  if sudo cp -a "$MKINITCPIO_CONF" "$MKINITCPIO_BACKUP"; then
+    info "Backed up $MKINITCPIO_CONF to $MKINITCPIO_BACKUP"
+  else
+    warn "Could not back up $MKINITCPIO_CONF; continuing."
+  fi
+
+  # shellcheck disable=SC2024 # the log file is owned by the invoking user
+  if ! sudo sed -Ei 's/^(MODULES=\([^\)]*)\)/\1 nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' "$MKINITCPIO_CONF" >>"$LOG" 2>&1; then
+    warn "Could not edit $MKINITCPIO_CONF."
+  fi
+
+  if grep -qE '^MODULES=.*nvidia_drm' "$MKINITCPIO_CONF"; then
+    ok "Nvidia modules added to $MKINITCPIO_CONF."
+  else
+    warn "The Nvidia modules were not added to $MKINITCPIO_CONF. Add them manually."
+  fi
 fi
 
 printf "\n%.0s" {1..1}
 printf "${INFO} Rebuilding ${YELLOW}Initramfs${RESET}...\n" 2>&1 | tee -a "$LOG"
-sudo mkinitcpio -P 2>&1 | tee -a "$LOG"
+# shellcheck disable=SC2024 # the log file is owned by the invoking user
+if ! sudo mkinitcpio -P >>"$LOG" 2>&1; then
+  warn "mkinitcpio failed. Check $LOG before rebooting."
+else
+  ok "Initramfs rebuilt."
+fi
 
 printf "\n%.0s" {1..1}
 
 # Additional Nvidia steps
 NVEA="/etc/modprobe.d/nvidia.conf"
-if [ -f "$NVEA" ]; then
-  printf "${INFO} Seems like ${YELLOW}nvidia_drm modeset=1 fbdev=1${RESET} is already added in your system..moving on."
-  printf "\n"
+if [ -f "$NVEA" ] && grep -q 'nvidia_drm' "$NVEA"; then
+  note "nvidia_drm modeset/fbdev options are already present in $NVEA."
 else
-  printf "\n"
-  printf "${YELLOW} Adding options to $NVEA..."
-  sudo echo -e "options nvidia_drm modeset=1 fbdev=1" | sudo tee -a /etc/modprobe.d/nvidia.conf 2>&1 | tee -a "$LOG"
-  printf "\n"
+  step "Adding nvidia_drm options to $NVEA"
+  # shellcheck disable=SC2024 # the log file is owned by the invoking user
+  printf '%s\n' "options nvidia_drm modeset=1 fbdev=1" | sudo tee -a "$NVEA" >>"$LOG" 2>&1 || warn "Could not write to $NVEA."
+  if grep -q 'nvidia_drm' "$NVEA" 2>/dev/null; then
+    ok "nvidia_drm options written to $NVEA."
+  else
+    warn "Could not write to $NVEA."
+  fi
 fi
 
 # Additional for GRUB users
 if [ -f /etc/default/grub ]; then
     printf "${INFO} ${YELLOW}GRUB${RESET} bootloader detected\n" 2>&1 | tee -a "$LOG"
+
+    GRUB_BACKUP="/etc/default/grub.bak-$(date +%Y%m%d-%H%M%S)"
+    if sudo cp -a /etc/default/grub "$GRUB_BACKUP"; then
+        info "Backed up /etc/default/grub to $GRUB_BACKUP"
+    else
+        warn "Could not back up /etc/default/grub."
+    fi
     
     # Check if nvidia-drm.modeset=1 is present
     if ! sudo grep -q "nvidia-drm.modeset=1" /etc/default/grub; then
@@ -97,8 +138,12 @@ if [ -f /etc/default/grub ]; then
 
     # Regenerate GRUB configuration 
     if sudo grep -q "nvidia-drm.modeset=1" /etc/default/grub || sudo grep -q "nvidia_drm.fbdev=1" /etc/default/grub; then
-       sudo grub-mkconfig -o /boot/grub/grub.cfg
-       printf "${INFO} ${YELLOW}GRUB${RESET} configuration regenerated\n" 2>&1 | tee -a "$LOG"
+       # shellcheck disable=SC2024 # the log file is owned by the invoking user
+       if sudo grub-mkconfig -o /boot/grub/grub.cfg >>"$LOG" 2>&1; then
+           printf "${INFO} ${YELLOW}GRUB${RESET} configuration regenerated\n" 2>&1 | tee -a "$LOG"
+       else
+           warn "grub-mkconfig failed. Check $LOG before rebooting."
+       fi
     fi
   
     printf "${OK} Additional steps for ${YELLOW}GRUB${RESET} completed\n" 2>&1 | tee -a "$LOG"
@@ -108,10 +153,16 @@ fi
 if [ -f /boot/loader/loader.conf ]; then
     printf "${INFO} ${YELLOW}systemd-boot${RESET} bootloader detected\n" 2>&1 | tee -a "$LOG"
   
-    backup_count=$(find /boot/loader/entries/ -type f -name "*.conf.bak" | wc -l)
-    conf_count=$(find /boot/loader/entries/ -type f -name "*.conf" | wc -l)
-  
-    if [ "$backup_count" -ne "$conf_count" ]; then
+    backup_count=0
+    conf_count=0
+    if [ -d /boot/loader/entries ]; then
+        backup_count=$(find /boot/loader/entries -type f -name "*.conf.bak" | wc -l)
+        conf_count=$(find /boot/loader/entries -type f -name "*.conf" | wc -l)
+    fi
+
+    if [ "$conf_count" -eq 0 ]; then
+        warn "No systemd-boot entries found in /boot/loader/entries."
+    elif [ "$backup_count" -ne "$conf_count" ]; then
         find /boot/loader/entries/ -type f -name "*.conf" | while read imgconf; do
             # Backup conf
             sudo cp "$imgconf" "$imgconf.bak"

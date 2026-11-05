@@ -16,6 +16,7 @@ packages=(
   qt5-declarative
   qt5-quickcontrols2
   qt6-declarative
+  quickshell
   rofi
   imagemagick
   swaync
@@ -60,16 +61,21 @@ cd "$PARENT_DIR" || {
 }
 
 # Source the global functions script
-source "$(dirname "$(readlink -f "$0")")/Global_functions.sh"
+if ! source "$(dirname "$(readlink -f "$0")")/Global_functions.sh"; then
+  echo "Failed to source Global_functions.sh"
+  exit 1
+fi
 
 # Set the name of the log file to include the current date and time
 LOG="Install-Logs/00_CHECK-$(date +%d-%H%M%S)_installed.log"
 PACMAN_CONF="/etc/pacman.conf"
 
 printf "\n%s - Final Check if all ${SKY_BLUE}Essential packages${RESET} were installed \n" "${NOTE}"
-# Initialize an empty array to hold missing packages
+# Initialize empty arrays to hold anything that is missing
 missing=()
 local_missing=()
+missing_binaries=()
+check_failed=0
 
 # Function to check if a packages are installed using pacman
 is_installed_pacman() {
@@ -131,7 +137,7 @@ done
 # Check required binaries in PATH
 for bin in "${binaries[@]}"; do
   if ! command -v "$bin" >/dev/null 2>&1; then
-    local_missing+=("$bin")
+    missing_binaries+=("$bin")
   fi
 done
 
@@ -154,10 +160,12 @@ else
   echo "${OK} ${waybar_pkg} is installed${waybar_build:+ - $waybar_build}." | tee -a "$LOG"
 fi
 
-# Log missing packages
-if [ ${#missing[@]} -eq 0 ] && [ ${#local_missing[@]} -eq 0 ]; then
+# Report missing packages, local binaries and PATH binaries separately
+if [ ${#missing[@]} -eq 0 ] && [ ${#local_missing[@]} -eq 0 ] && [ ${#missing_binaries[@]} -eq 0 ]; then
   echo "${OK} GREAT! All ${YELLOW}essential packages${RESET} have been successfully installed." | tee -a "$LOG"
 else
+  check_failed=1
+
   if [ ${#missing[@]} -ne 0 ]; then
     echo "${WARN} The following packages are not installed and will be logged:"
     for pkg in "${missing[@]}"; do
@@ -167,10 +175,18 @@ else
   fi
 
   if [ ${#local_missing[@]} -ne 0 ]; then
-    echo "${WARN} The following local packages are missing from /usr/local/bin/ and will be logged:"
+    echo "${WARN} The following local packages are missing from /usr/local/bin/:"
     for pkg1 in "${local_missing[@]}"; do
-      echo "${WARNING}$pkg1${RESET} is not installed. Can't find it in /usr/local/bin/ or PATH"
+      echo "${WARNING}$pkg1${RESET} is not installed in /usr/local/bin/"
       echo "$pkg1" >>"$LOG"
+    done
+  fi
+
+  if [ ${#missing_binaries[@]} -ne 0 ]; then
+    echo "${WARN} The following required binaries are missing from PATH:"
+    for bin in "${missing_binaries[@]}"; do
+      echo "${WARNING}$bin${RESET} was not found in PATH"
+      echo "$bin" >>"$LOG"
     done
   fi
 
@@ -202,3 +218,6 @@ if systemctl --user list-unit-files 2>/dev/null | grep -q '^hyprpolkitagent\.ser
     echo "${WARN} hyprpolkitagent user service is not running." | tee -a "$LOG"
   fi
 fi
+
+# Non-zero when essentials are missing, so update-deps.sh can surface it
+exit "$check_failed"

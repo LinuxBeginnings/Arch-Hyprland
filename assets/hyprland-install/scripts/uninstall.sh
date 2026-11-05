@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034 # color variables are used throughout the script
 # /* ---- 💫 https://github.com/LinuxBeginnings 💫 ---- */  #
 
 # uninstalling hyprland packages
@@ -85,6 +86,9 @@ sudo rm -rf "/usr/share/xdg-desktop-portal/hyprland-portals.conf"
 
 if [ $overall_failed -eq 0 ]; then
   echo -e "${OK} All specified hyprland packages have been uninstalled."
+else
+  echo -e "${ERROR} Some packages could not be uninstalled; see the messages above."
+  exit 1
 fi
 
 printf "\n%.0s" {1..2}

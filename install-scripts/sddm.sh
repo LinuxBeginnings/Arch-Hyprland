@@ -61,6 +61,9 @@ for arg in "$@"; do
       exit 0
       ;;
     *)
+      printf '%s Unknown option: %s\n' "$ERROR" "$arg" >&2
+      printf 'Usage: %s [--enable-wayland | --disable-wayland]\n' "$(basename "$0")" >&2
+      exit 1
       ;;
   esac
 done
@@ -68,8 +71,8 @@ done
 configure_sddm_wayland() {
   printf "${INFO} Configuring SDDM greeter for Wayland via cage...\n" | tee -a "$LOG"
 
-  # Ensure cage is installed
-  install_package "cage" "$LOG"
+  # Ensure cage is installed (it is in the official repositories)
+  install_package_pacman "cage" "$LOG"
 
   # Detect greeter binary across distros
   GREETER=""
@@ -163,6 +166,7 @@ configure_sddm_disable_wayland() {
 }
 
 # Install SDDM and SDDM theme
+section "SDDM login manager"
 printf "${NOTE} Installing sddm and dependencies........\n"
 for package in "${sddm[@]}"; do
   install_package "$package" "$LOG"
@@ -170,31 +174,37 @@ done
 
 printf "\n%.0s" {1..1}
 
-# Check if other login managers installed and disabling its service before enabling sddm
+# Disable other installed display managers before enabling sddm.
+# They are not stopped immediately: stopping the active greeter could kill the
+# session this installer is running in. A reboot applies the change.
 for login_manager in "${login[@]}"; do
-  if pacman -Qs "$login_manager" >/dev/null 2>&1; then
-    sudo systemctl disable "$login_manager.service" >>"$LOG" 2>&1
-    echo "$login_manager disabled." >>"$LOG" 2>&1
+  if ! pacman -Qq "$login_manager" &>/dev/null; then
+    continue
   fi
-done
-
-# Double check with systemctl
-for manager in "${login[@]}"; do
-  if systemctl is-active --quiet "$manager" >/dev/null 2>&1; then
-    echo "$manager is active, disabling it..." >>"$LOG" 2>&1
-    sudo systemctl disable "$manager" --now >>"$LOG" 2>&1
+  # shellcheck disable=SC2024 # the log file is owned by the invoking user
+  if sudo systemctl disable "$login_manager.service" >>"$LOG" 2>&1; then
+    step "Disabled $login_manager.service"
+  else
+    warn "Could not disable $login_manager.service; check $LOG."
   fi
 done
 
 printf "\n%.0s" {1..1}
 printf "${INFO} Activating sddm service........\n"
-sudo systemctl enable sddm
+# shellcheck disable=SC2024 # the log file is owned by the invoking user
+if ! sudo systemctl enable sddm.service >>"$LOG" 2>&1; then
+  warn "Could not enable sddm.service. Check $LOG before rebooting."
+else
+  ok "sddm.service enabled"
+fi
 
 wayland_sessions_dir=/usr/share/wayland-sessions
-[ ! -d "$wayland_sessions_dir" ] && {
-  printf "$CAT - $wayland_sessions_dir not found, creating...\n"
-  sudo mkdir "$wayland_sessions_dir" 2>&1 | tee -a "$LOG"
-}
+if [ ! -d "$wayland_sessions_dir" ]; then
+  printf '%s - %s not found, creating...\n' "$CAT" "$wayland_sessions_dir"
+  if ! sudo mkdir -p "$wayland_sessions_dir" 2>&1 | tee -a "$LOG"; then
+    warn "Could not create $wayland_sessions_dir."
+  fi
+fi
 
 # Apply Wayland/X11 greeter flags
 if [[ "$ENABLE_SDDM_WAYLAND" -eq 1 && "$DISABLE_SDDM_WAYLAND" -eq 1 ]]; then

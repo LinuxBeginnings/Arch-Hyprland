@@ -21,6 +21,14 @@
   - `02-Final-Check.sh` reports the `waybar -v` build tag
     - Shows the exact revision, e.g. `Waybar v0.15.0-1100-gf6f73c81 (branch 'master')`
     - Accepts either `waybar` or `waybar-git` as installed
+  - `quickshell` is a hard dependency now
+    - `quickshell` and `qt6-5compat` are installed with the packages in `01-hypr-pkgs.sh`
+    - No longer a separate install step or menu option
+    - `quickshell.sh` can still be run manually to reinstall it
+    - Added to the `02-Final-Check.sh` dependency check
+  - AGS is kept as an optional desktop overview
+    - New `ags` choice in the install checklist
+    - Installs `install-scripts/ags.sh`; a failure warns instead of stopping, since quickshell is already installed
 
 - Fixed:
   - Package failures are reported instead of silently ignored

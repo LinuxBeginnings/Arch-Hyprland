@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034 # color variables are used throughout the script
 # /* ---- 💫 https://github.com/LinuxBeginnings 💫 ---- */  #
 
 # Set some colors for output messages
@@ -16,6 +17,11 @@ BLUE="$(tput setaf 4)"
 RESET="$(tput sgr0)"
 
 ISAUR=$(command -v yay || command -v paru)
+
+if [ -z "$ISAUR" ]; then
+    echo -e "${ERROR} Neither yay nor paru is installed. Install an AUR helper first."
+    exit 1
+fi
 
 printf "\n%.0s" {1..2}
 
@@ -56,8 +62,8 @@ show_progress() {
 # Clearing cache
 echo -n "${CAT} Recommend (choose y to all) to clear ${MAGENTA}pacman and aur helper${RESET} cache ..."
 printf "\n%.0s" {1..1}
-sudo pacman -Scc &&
-$ISAUR -Scc
+sudo pacman -Scc --noconfirm
+"$ISAUR" -Scc --noconfirm
 
 printf "\n%.0s" {1..1}
 printf "${NOTE} Installing ${BLUE}git hyprland version${RESET}....."

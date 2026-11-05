@@ -47,14 +47,26 @@ for PIPEWIRE in "${pipewire[@]}"; do
     install_package "$PIPEWIRE" "$LOG"
 done
 
+# Force a reinstall: these packages are known to end up installed but broken
 for PIPEWIRE2 in "${pipewire_2[@]}"; do
-    install_package_pacman "$PIPEWIRE2" "$LOG"
+    reinstall_package_pacman "$PIPEWIRE2" "$LOG"
 done
 
 echo -e "${NOTE} Activating Pipewire Services..."
-# Redirect systemctl output to log file
-systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service 2>&1 | tee -a "$LOG"
-systemctl --user enable --now pipewire.service 2>&1 | tee -a "$LOG"
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+    warn "XDG_RUNTIME_DIR is not set, so user audio services cannot be enabled now."
+    note "After logging into the desktop, run: systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service"
+else
+    # Redirect systemctl output to the log and keep systemctl's own status
+    systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service 2>&1 | tee -a "$LOG"
+    if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+        warn "Could not enable the PipeWire user services. Check $LOG."
+    fi
+    systemctl --user enable --now pipewire.service 2>&1 | tee -a "$LOG"
+    if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+        warn "Could not start pipewire.service. Check $LOG."
+    fi
+fi
 
 echo -e "\n${OK} Pipewire Installation and services setup complete!" 2>&1 | tee -a "$LOG"
 

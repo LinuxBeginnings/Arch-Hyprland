@@ -48,8 +48,10 @@ hypr_package=(
   qt5-declarative
   qt5-quickcontrols2
   qt6ct
+  qt6-5compat # required by quickshell
   qt6-declarative
   qt6-svg
+  quickshell # desktop overview (required by the dots)
   rofi
   slurp
   swappy
@@ -120,19 +122,18 @@ WALLUST_STATUS_FILE="$PARENT_DIR/Install-Logs/.wallust-status"
 rm -f "$WALLUST_STATUS_FILE"
 # rofi v2.x presence check (do not remove if already on v2.x)
 skip_rofi_uninstall=false
-if pacman -Qi rofi &>/dev/null; then
-  rofi_version="$(pacman -Qi rofi | awk -F': ' '/Version/{print $2}' | cut -d- -f1)"
+if pacman -Qq rofi &>/dev/null; then
+  rofi_version="$(installed_version_of rofi || true)"
   if [[ "${rofi_version%%.*}" == "2" ]]; then
     skip_rofi_uninstall=true
     echo -e "${INFO} rofi ${rofi_version} detected. Skipping uninstall of rofi."
   fi
 fi
 
-# Repo waybar has to go before waybar-git can be installed. Check the real
-# package name: `pacman -Qi waybar` resolves through provides, so it matches
-# waybar-git too and an unguarded removal would delete the wanted package.
+# Repo waybar has to go before waybar-git can be installed. `pacman -Qi waybar`
+# resolves through provides and also matches waybar-git, so check the exact name.
 skip_waybar_uninstall=true
-if [ "$(pacman -Qi waybar 2>/dev/null | awk -F': ' '/^Name/{print $2; exit}')" = "waybar" ]; then
+if pacman -Qq waybar &>/dev/null; then
   skip_waybar_uninstall=false
 fi
 

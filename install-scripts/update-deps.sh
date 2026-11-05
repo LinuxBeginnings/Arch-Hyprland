@@ -59,7 +59,9 @@ cd "$PARENT_DIR" || {
   exit 1
 }
 
-mapfile -t scripts < <(ls "$SCRIPT_DIR"/0*-*.sh 2>/dev/null | sort)
+shopt -s nullglob
+scripts=("$SCRIPT_DIR"/0*-*.sh)
+shopt -u nullglob
 
 pick_script() {
   local pattern="$1"
@@ -203,3 +205,12 @@ if [ ${#missing_pkgs[@]} -gt 0 ]; then
 else
   echo "Missing packages from final check: none detected"
 fi
+
+if [ "$dependencies_status" -ne 0 ] || [ "$packages_status" -ne 0 ] ||
+  [ "$check_status" -ne 0 ] || [ "$pre_cleanup_status" -ne 0 ]; then
+  echo
+  echo "One or more steps failed; review the logs above."
+  exit 1
+fi
+
+exit 0

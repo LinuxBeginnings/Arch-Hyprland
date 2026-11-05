@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034 # color variables are used throughout the script
 # /* ---- 💫 https://github.com/LinuxBeginnings 💫 ---- */  #
 
 # Set some colors for output messages
@@ -15,8 +16,15 @@ BLUE=$(tput setaf 4)
 RESET=$(tput sgr0)
 
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || { echo -e "${ERROR} Cannot enter $SCRIPT_DIR"; exit 1; }
+
 # Make all scripts in the scripts directory executable
 echo -e "${INFO} Making all files in the ${BLUE}scripts${RESET} directory executable..."
+if ! compgen -G "./scripts/*" >/dev/null; then
+    echo -e "${ERROR} No scripts found in ./scripts"
+    exit 1
+fi
 chmod +x ./scripts/*
 
 printf "\n%.0s" {1..2}
@@ -28,7 +36,7 @@ while true; do
     echo -e "${YELLOW} -- 3 - Update Hyprland-git packages${RESET}"
     echo -e "${MAGENTA} -- 4 - Quit${RESET}"
 
-    read -p "${CAT} Enter your choice [1, 2, or 3]: " choice
+    read -r -p "${CAT} Enter your choice [1, 2, 3 or 4]: " choice
 
     case $choice in
         1)

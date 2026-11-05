@@ -122,6 +122,14 @@ https://github.com/user-attachments/assets/49bc12b2-abaf-45de-a21c-67aacd9bb872
 sh <(curl -L https://raw.githubusercontent.com/LinuxBeginnings/Arch-Hyprland/main/auto-install.sh)
 ```
 
+- If `~/Arch-Hyprland` already exists, `auto-install.sh` asks before replacing it. To replace it without a prompt (for scripted installs) add `--yes`:
+
+```bash
+sh <(curl -L https://raw.githubusercontent.com/LinuxBeginnings/Arch-Hyprland/main/auto-install.sh) --yes
+```
+
+- Other options are passed to `install.sh`, e.g. `... --dry-run` or `... --preset my-preset`.
+
 ## ✨ to use this script
 
 - clone this repo (latest commit only) to reduce file size download by using git. Change directory, make executable and run the script

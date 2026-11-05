@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034 # preset-backed option variables are read indirectly
 # ==================================================
 #  KoolDots (2026)
 #  Project URL: https://github.com/LinuxBeginnings
@@ -7,9 +8,13 @@
 # ==================================================
 # https://github.com/LinuxBeginnings
 
-# Shared color definitions
+# Shared color, icon and console helpers
 # shellcheck source=install-scripts/colours.sh
 source "$(dirname "$(readlink -f "$0")")/install-scripts/colours.sh"
+
+# Put the cursor back if the run is interrupted while a spinner is active
+trap restore_cursor EXIT
+trap 'restore_cursor; exit 130' INT TERM
 
 # Set a high-contrast whiptail theme unless the user already provided one
 if [ -z "${NEWT_COLORS:-}" ]; then
@@ -33,13 +38,15 @@ actcheckbox=black,cyan
 '
 fi
 
-# Create Directory for Install Logs
-if [ ! -d Install-Logs ]; then
-  mkdir Install-Logs
-fi
+usage() {
+  cat <<EOF
+Usage: $0 [options]
 
-# Set the name of the log file to include the current date and time
-LOG="Install-Logs/01-Hyprland-Install-Scripts-$(date +%d-%H%M%S).log"
+  --preset <file>  Pre-select menu options from a shell file
+  --dry-run        Report what would run without changing the system
+  -h, --help       Show this help and exit
+EOF
+}
 
 # --preset <file> pre-fills the checklist, --dry-run only reports what would be
 # done without installing, removing or writing anything
@@ -50,7 +57,11 @@ while [ $# -gt 0 ]; do
   --preset)
     PRESET_FILE="${2:-}"
     if [ -z "$PRESET_FILE" ]; then
-      echo "${ERROR} --preset needs a file name"
+      printf '%s\n' "${ERROR} --preset needs a file name" >&2
+      exit 1
+    fi
+    if [ ! -r "$PRESET_FILE" ]; then
+      printf '%s\n' "${ERROR} Preset file not found or unreadable: $PRESET_FILE" >&2
       exit 1
     fi
     shift 2
@@ -59,9 +70,13 @@ while [ $# -gt 0 ]; do
     DRY_RUN=1
     shift
     ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
   *)
-    echo "${ERROR} Unknown option: $1"
-    echo "${NOTE} Usage: $0 [--preset <file>] [--dry-run]"
+    printf '%s\n' "${ERROR} Unknown option: $1" >&2
+    usage >&2
     exit 1
     ;;
   esac
@@ -70,18 +85,36 @@ done
 # A dry run must not write anything, log included
 if [ "$DRY_RUN" -eq 1 ]; then
   LOG="/dev/null"
+else
+  if ! mkdir -p Install-Logs; then
+    printf '%s\n' "${ERROR} Could not create the Install-Logs directory." >&2
+    exit 1
+  fi
+  # Set the name of the log file to include the current date and time
+  LOG="Install-Logs/01-Hyprland-Install-Scripts-$(date +%d-%H%M%S).log"
+fi
+
+# This installer only supports Arch and Arch-based distributions
+if ! command -v pacman >/dev/null 2>&1; then
+  printf '%s\n' "${ERROR} pacman not found. This installer targets Arch Linux." | tee -a "$LOG"
+  exit 1
+fi
+
+if ! command -v sudo >/dev/null 2>&1; then
+  printf '%s\n' "${ERROR} sudo not found. Install sudo and run the installer again." | tee -a "$LOG"
+  exit 1
 fi
 
 # Check if running as root. If root, script will exit
 if [[ $EUID -eq 0 ]]; then
-  echo "${ERROR}  This script should ${WARNING}NOT${RESET} be executed as root!! Exiting......." | tee -a "$LOG"
+  printf '%s\n' "${ERROR} This script should ${WARNING}NOT${RESET} be executed as root!! Exiting......." | tee -a "$LOG"
   printf "\n%.0s" {1..2}
   exit 1
 fi
 
 # Check if PulseAudio package is installed
-if pacman -Qq | grep -qw '^pulseaudio$'; then
-  echo "$ERROR PulseAudio is detected as installed. Uninstall it first or remove the 'pipewire.sh' call in install.sh." | tee -a "$LOG"
+if pacman -Qq pulseaudio &>/dev/null; then
+  printf '%s\n' "${ERROR} PulseAudio is detected as installed. Remove it first, or drop the 'pipewire.sh' step from install.sh." | tee -a "$LOG"
   printf "\n%.0s" {1..2}
   exit 1
 fi
@@ -116,12 +149,7 @@ fi
 
 clear
 
-printf "\n%.0s" {1..2}
-echo -e "\e[35m
-	╦╔═┌─┐┌─┐╦    ╦ ╦┬ ┬┌─┐┬─┐┬  ┌─┐┌┐┌┌┬┐
-	╠╩╗│ ││ │║    ╠═╣└┬┘├─┘├┬┘│  ├─┤│││ ││ 2026
-	╩ ╩└─┘└─┘╩═╝  ╩ ╩ ┴ ┴  ┴└─┴─┘┴ ┴┘└┘─┴┘ Arch Linux
-\e[0m"
+print_banner "Install • 2026"
 printf "\n%.0s" {1..1}
 
 if [ "$DRY_RUN" -eq 1 ]; then
@@ -149,13 +177,17 @@ echo "👌 ${OK} 🇵🇭 ${MAGENTA}KooL..${RESET} ${SKY_BLUE}lets continue with
 sleep 1
 printf "\n%.0s" {1..1}
 
+section "Prerequisites"
+
 # install pciutils if detected not installed. Necessary for detecting GPU
-if ! pacman -Qs pciutils >/dev/null; then
+if ! pacman -Qq pciutils &>/dev/null; then
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "${NOTE} - pciutils is not installed. It would be installed."
   else
     echo "${NOTE} - pciutils is not installed. Installing..." | tee -a "$LOG"
-    sudo pacman -S --noconfirm pciutils
+    if ! sudo pacman -S --noconfirm --needed pciutils; then
+      warn "pciutils could not be installed. NVIDIA detection may be skipped."
+    fi
     printf "\n%.0s" {1..1}
   fi
 fi
@@ -173,27 +205,36 @@ wallust_setup_failed=0
 dotfiles_paused_for_wallust=0
 declare -a deferred_non_fatal_failures=()
 
-# Function to execute a script if it exists and make it executable
+# Run one install script, logging its start, result and duration
 execute_script() {
   local script="$1"
   local script_path="$script_directory/$script"
-  if [ -f "$script_path" ]; then
-    [ "$DRY_RUN" -eq 1 ] || chmod +x "$script_path"
-    if [ -x "$script_path" ] || [ "$DRY_RUN" -eq 1 ]; then
-      if [ "$DRY_RUN" -eq 1 ]; then
-        echo "${SKY_BLUE}[DRY-RUN]${RESET} would run ${YELLOW}$script_path${RESET}"
-        return 0
-      fi
-      bash "$script_path"
-      return $?
-    else
-      echo "Failed to make script '$script' executable."
-      return 1
-    fi
-  else
-    echo "Script '$script' not found in '$script_directory'."
+  local started=$SECONDS status=0
+
+  if [ ! -f "$script_path" ]; then
+    error "Script '$script' not found in '$script_directory'."
+    log_to_file "Missing script: $script_path"
     return 1
   fi
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '%s would run %s\n' "${SKY_BLUE}[DRY-RUN]${RESET}" "${YELLOW}$script_path${RESET}"
+    return 0
+  fi
+
+  if ! chmod +x "$script_path" 2>/dev/null; then
+    warn "Could not mark $script executable; running it with bash anyway."
+  fi
+
+  step "Running $script"
+  bash "$script_path" || status=$?
+  if [ "$status" -ne 0 ]; then
+    error "$script exited with status $status after $((SECONDS - started))s."
+    log_to_file "Script $script failed with exit status $status"
+  else
+    log_to_file "Script $script completed in $((SECONDS - started))s"
+  fi
+  return "$status"
 }
 
 ## Default values for the options (will be overwritten by preset file if available)
@@ -206,18 +247,21 @@ zsh="OFF"
 pokemon="OFF"
 rog="OFF"
 dots="OFF"
+ags="OFF"
 input_group="OFF"
 nvidia="OFF"
 nouveau="OFF"
 
 # Function to load preset file
 load_preset() {
-  if [ -f "$1" ]; then
-    echo "✅ Loading preset: $1"
-    source "$1"
-  else
-    echo "⚠️ Preset file not found: $1. Using default values."
+  if [ ! -f "$1" ]; then
+    warn "Preset file not found: $1. Using default values."
+    return 0
   fi
+  echo "${OK} Loading preset: $1" | tee -a "$LOG"
+  # shellcheck disable=SC1090
+  source "$1"
+  log_to_file "Loaded preset: $1"
 }
 
 # Load the preset given with --preset, if any
@@ -235,7 +279,9 @@ option_state() {
 }
 
 # Check if yay or paru is installed
-echo "${INFO} - Checking if yay or paru is installed"
+section "AUR helper"
+aur_helper=""
+info "Checking for an installed AUR helper (yay or paru)..."
 if ! command -v yay &>/dev/null && ! command -v paru &>/dev/null; then
   echo "${CAT} - Neither yay nor paru found. Asking 🗣️ USER to select..."
   while true; do
@@ -244,13 +290,11 @@ if ! command -v yay &>/dev/null && ! command -v paru &>/dev/null; then
       break
     fi
 
-    aur_helper=$(whiptail --title "Neither Yay nor Paru is installed" --checklist "Neither Yay nor Paru is installed. Choose one AUR.\n\nNOTE: Select only 1 AUR helper!\nINFO: spacebar to select" 12 60 2 \
+    if ! aur_helper=$(whiptail --title "Neither Yay nor Paru is installed" --checklist "Neither Yay nor Paru is installed. Choose one AUR.\n\nNOTE: Select only 1 AUR helper!\nINFO: spacebar to select" 12 60 2 \
       "yay" "AUR Helper yay" "OFF" \
       "paru" "AUR Helper paru" "OFF" \
-      3>&1 1>&2 2>&3)
-
-    if [ $? -ne 0 ]; then
-      echo "❌ ${INFO} You cancelled the selection. ${YELLOW}Goodbye!${RESET}" | tee -a "$LOG"
+      3>&1 1>&2 2>&3); then
+      note "No AUR helper selected. Nothing was installed."
       exit 0
     fi
 
@@ -261,10 +305,10 @@ if ! command -v yay &>/dev/null && ! command -v paru &>/dev/null; then
 
     echo "${INFO} - You selected: $aur_helper as your AUR helper" | tee -a "$LOG"
 
-    aur_helper=$(echo "$aur_helper" | tr -d '"')
+    aur_helper="$(printf '%s' "$aur_helper" | tr -d '"' | tr -s ' ' | sed 's/^ //;s/ $//')"
 
     # Check if multiple helpers were selected
-    if [[ $(echo "$aur_helper" | wc -w) -ne 1 ]]; then
+    if [[ $(printf '%s' "$aur_helper" | wc -w) -ne 1 ]]; then
       whiptail --title "Error" --msgbox "You must select exactly one AUR helper." 10 60 2
       continue
     else
@@ -272,15 +316,18 @@ if ! command -v yay &>/dev/null && ! command -v paru &>/dev/null; then
     fi
   done
 else
-  echo "${NOTE} - AUR helper is already installed. Skipping AUR helper selection."
+  aur_helper="$(basename "$(command -v yay || command -v paru)")"
+  note "AUR helper already installed ($aur_helper). Skipping selection."
 fi
 
 # List of services to check for active login managers
 services=("gdm.service" "gdm3.service" "lightdm.service" "lxdm.service")
+active_services=()
 
 # Function to check if any login services are active
 check_services_running() {
   active_services=() # Array to store active services
+  command -v systemctl >/dev/null 2>&1 || return 1
   for svc in "${services[@]}"; do
     if systemctl is-active --quiet "$svc"; then
       active_services+=("$svc")
@@ -306,9 +353,17 @@ if check_services_running; then
   fi
 fi
 
+# NVIDIA needs pciutils, and absent lspci must not be treated as "no GPU"
+has_nvidia_gpu() {
+  local lspci_bin=""
+  lspci_bin="$(command -v lspci || true)"
+  [ -n "$lspci_bin" ] || return 1
+  "$lspci_bin" 2>/dev/null | grep -qi nvidia
+}
+
 # Check if NVIDIA GPU is detected
 nvidia_detected=false
-if lspci | grep -i "nvidia" &>/dev/null; then
+if has_nvidia_gpu; then
   nvidia_detected=true
   if [ "$DRY_RUN" -eq 0 ]; then
     whiptail --title "NVIDIA GPU Detected" --msgbox "NVIDIA GPU detected in your system.\n\nNOTE: The script will install nvidia-dkms, nvidia-utils, and nvidia-settings if you chose to configure." 12 60
@@ -323,7 +378,7 @@ options_command=(
 )
 
 # Add NVIDIA options if detected
-if [ "$nvidia_detected" == "true" ]; then
+if [ "$nvidia_detected" = "true" ]; then
   options_command+=(
     "nvidia" "Do you want script to configure NVIDIA GPU?" "$(option_state nvidia)"
     "nouveau" "Do you want Nouveau to be blacklisted?" "$(option_state nouveau)"
@@ -332,7 +387,7 @@ fi
 
 # Add 'input_group' option if user is not in input group
 input_group_detected=false
-if ! groups "$(whoami)" | grep -q '\binput\b'; then
+if ! id -nG "$(id -un)" 2>/dev/null | tr ' ' '\n' | grep -qx input; then
   input_group_detected=true
   if [ "$DRY_RUN" -eq 0 ]; then
     whiptail --title "Input Group" --msgbox "You are not currently in the input group.\n\nAdding you to the input group might be necessary for the Waybar keyboard-state functionality." 12 60
@@ -342,7 +397,7 @@ if ! groups "$(whoami)" | grep -q '\binput\b'; then
 fi
 
 # Add 'input_group' option if necessary
-if [ "$input_group_detected" == "true" ]; then
+if [ "$input_group_detected" = "true" ]; then
   options_command+=(
     "input_group" "Add your USER to input group for some waybar functionality?" "$(option_state input_group)"
   )
@@ -365,6 +420,7 @@ options_command+=(
   "pokemon" "Add Pokemon color scripts to your terminal?" "$(option_state pokemon)"
   "rog" "Are you installing on Asus ROG laptops?" "$(option_state rog)"
   "dots" "Download and install pre-configured KooL Hyprland dotfiles?" "$(option_state dots)"
+  "ags" "Install AGS as an alternative desktop overview? (quickshell is installed)" "$(option_state ags)"
 )
 
 # Capture the selected options before the while loop starts
@@ -372,7 +428,7 @@ while true; do
   # A dry run has nobody to answer the checklist: take the preset values instead
   if [ "$DRY_RUN" -eq 1 ]; then
     selected_options=""
-    for dry_option in nvidia nouveau input_group sddm sddm_theme gtk_themes bluetooth thunar zsh pokemon rog dots; do
+    for dry_option in nvidia nouveau input_group sddm sddm_theme gtk_themes bluetooth thunar zsh pokemon rog dots ags; do
       if [ "$(option_state "$dry_option")" == "ON" ]; then
         selected_options+="$dry_option "
       fi
@@ -385,11 +441,16 @@ while true; do
 
   selected_options=$("${options_command[@]}" 3>&1 1>&2 2>&3)
 
-  # Check if the user pressed Cancel (exit status 1)
-  if [ $? -ne 0 ]; then
+  # Check if the user cancelled (1) or closed the dialog with ESC (255)
+  selection_status=$?
+  if [ "$selection_status" -ne 0 ]; then
     echo -e "\n"
-    echo "❌ ${INFO} You 🫵 cancelled the selection. ${YELLOW}Goodbye!${RESET}" | tee -a "$LOG"
-    exit 0 # Exit the script if Cancel is pressed
+    if [ "$selection_status" -eq 255 ]; then
+      warn "Selection closed with ESC. Nothing was installed."
+    else
+      echo "❌ ${INFO} You 🫵 cancelled the selection. ${YELLOW}Goodbye!${RESET}" | tee -a "$LOG"
+    fi
+    exit 0
   fi
 
   # If no option was selected, notify and restart the selection
@@ -429,6 +490,7 @@ while true; do
   fi
 
   # Prepare the confirmation message
+  section "Selected options"
   confirm_message="You have selected the following options:\n\n"
   for option in "${options[@]}"; do
     confirm_message+=" - $option\n"
@@ -447,6 +509,8 @@ while true; do
 done
 
 printf "\n%.0s" {1..1}
+
+section "Base system setup"
 
 # Ensuring base-devel is installed
 execute_script "00-base.sh" || {
@@ -474,6 +538,8 @@ elif [ "$aur_helper" == "yay" ]; then
 fi
 
 sleep 1
+
+section "Hyprland packages"
 
 # Run the Hyprland related scripts
 echo "${INFO} Installing ${SKY_BLUE}KooL Hyprland additional packages...${RESET}" | tee -a "$LOG"
@@ -526,15 +592,9 @@ execute_script "hyprland.sh" || {
   exit 1
 }
 
-# quickshell and xdg-desktop-portal-hyprland are installed by default;
-# they are no longer offered as optional menu choices.
-echo "${INFO} Installing ${SKY_BLUE}quickshell (Desktop Overview)...${RESET}" | tee -a "$LOG"
-sleep 1
-execute_script "quickshell.sh" || {
-  echo "${ERROR:-[ERROR]} quickshell installation failed" | tee -a "$LOG"
-  exit 1
-}
-
+# quickshell is a hard dependency of the dots and is installed with the
+# packages in 01-hypr-pkgs.sh. xdg-desktop-portal-hyprland is not optional
+# either; neither is offered as a menu choice.
 echo "${INFO} Installing ${SKY_BLUE}xdg-desktop-portal-hyprland...${RESET}" | tee -a "$LOG"
 sleep 1
 execute_script "xdph.sh" || {
@@ -542,11 +602,11 @@ execute_script "xdph.sh" || {
   exit 1
 }
 
-# Clean up the selected options (remove quotes and trim spaces)
-selected_options=$(echo "$selected_options" | tr -d '"' | tr -s ' ')
+section "Optional components"
 
-# Convert selected options into an array (splitting by spaces)
-IFS=' ' read -r -a options <<<"$selected_options"
+# Clean up the selected options (remove quotes and trim spaces)
+selected_options=$(printf '%s' "$selected_options" | tr -d '"' | tr -s ' ')  # Convert selected options into an array (splitting by spaces)
+  IFS=' ' read -r -a options <<<"$selected_options"
 
 # Loop through selected options
 for option in "${options[@]}"; do
@@ -568,8 +628,8 @@ for option in "${options[@]}"; do
     execute_script "nvidia.sh"
     ;;
   nouveau)
-    echo "${INFO} blacklisting ${SKY_BLUE}nouveau${RESET}"
-    execute_script "nvidia_nouveau.sh" | tee -a "$LOG"
+    echo "${INFO} blacklisting ${SKY_BLUE}nouveau${RESET}" | tee -a "$LOG"
+    execute_script "nvidia_nouveau.sh" || warn "nouveau blacklist setup failed; check the log."
     ;;
   gtk_themes)
     echo "${INFO} Installing ${SKY_BLUE}GTK themes...${RESET}" | tee -a "$LOG"
@@ -604,6 +664,10 @@ for option in "${options[@]}"; do
     echo "${INFO} Installing ${SKY_BLUE}ROG laptop packages...${RESET}" | tee -a "$LOG"
     execute_script "rog.sh"
     ;;
+  ags)
+    echo "${INFO} Installing ${SKY_BLUE}AGS (Aylur's GTK Shell) desktop overview...${RESET}" | tee -a "$LOG"
+    execute_script "ags.sh" || warn "AGS installation failed; the quickshell overview remains available."
+    ;;
   dots)
     if [ "$wallust_setup_failed" -ne 0 ]; then
       dotfiles_paused_for_wallust=1
@@ -629,6 +693,8 @@ done
 sleep 1
 
 clear
+
+section "Final verification"
 
 # final check essential packages if it is installed
 execute_script "02-Final-Check.sh"
@@ -662,20 +728,20 @@ printf "\n%.0s" {1..1}
 
 # Check if hyprland or hyprland-git is installed
 if pacman -Q hyprland &>/dev/null || pacman -Q hyprland-git &>/dev/null; then
-  printf "\n ${OK} 👌 Hyprland is installed. However, some essential packages may not be installed. Please see above!"
-  printf "\n${CAT} Ignore this message if it states ${YELLOW}All essential packages${RESET} are installed as per above\n"
+  printf '\n %s 👌 Hyprland is installed. However, some essential packages may not be installed. Please see above!\n' "$OK"
+  printf '\n%s Ignore this message if it states %sAll essential packages%s are installed as per above\n' "$CAT" "$YELLOW" "$RESET"
   sleep 2
   printf "\n%.0s" {1..2}
 
-  printf "${SKY_BLUE}Thank you${RESET} 🫰 for using 🇵🇭 ${MAGENTA}KooL's Hyprland Dots${RESET}. ${YELLOW}Enjoy and Have a good day!${RESET}"
+  printf '%sThank you%s 🫰 for using 🇵🇭 %sKooL Hyprland Dots%s. %sEnjoy and have a good day!%s\n' "$SKY_BLUE" "$RESET" "$MAGENTA" "$RESET" "$YELLOW" "$RESET"
   printf "\n%.0s" {1..2}
 
-  printf "\n${NOTE} You can start Hyprland by typing ${SKY_BLUE}start-hyprland${RESET} (IF SDDM is not installed).\n"
-  printf "\n${NOTE} However, it is ${YELLOW}highly recommended to reboot${RESET} your system.\n\n"
+  printf '\n%s You can start Hyprland by typing %sstart-hyprland%s (if SDDM is not installed).\n' "$NOTE" "$SKY_BLUE" "$RESET"
+  printf '\n%s However, it is %shighly recommended to reboot%s your system.\n\n' "$NOTE" "$YELLOW" "$RESET"
 
   while true; do
-    echo -n "${CAT} Would you like to reboot now? (y/n): "
-    read HYP
+    printf '%s Would you like to reboot now? (y/n): ' "$CAT"
+    read -r HYP || HYP="n"
     HYP=$(echo "$HYP" | tr '[:upper:]' '[:lower:]')
 
     if [[ "$HYP" == "y" || "$HYP" == "yes" ]]; then
@@ -686,7 +752,7 @@ if pacman -Q hyprland &>/dev/null || pacman -Q hyprland-git &>/dev/null; then
       echo "👌 ${OK} You chose NOT to reboot"
       printf "\n%.0s" {1..1}
       # Check if NVIDIA GPU is present
-      if lspci | grep -i "nvidia" &>/dev/null; then
+      if has_nvidia_gpu; then
         echo "${INFO} HOWEVER ${YELLOW}NVIDIA GPU${RESET} detected. Reminder that you must REBOOT your SYSTEM..."
         printf "\n%.0s" {1..1}
       fi
@@ -697,7 +763,7 @@ if pacman -Q hyprland &>/dev/null || pacman -Q hyprland-git &>/dev/null; then
   done
 else
   # Print error message if neither package is installed
-  printf "\n${WARN} Hyprland is NOT installed. Please check 00_CHECK-time_installed.log and other files in the Install-Logs/ directory..."
+  printf "\n${WARN} Hyprland is NOT installed. Check the 00_CHECK-*_installed.log file and the other logs in Install-Logs/."
   printf "\n%.0s" {1..3}
   exit 1
 fi

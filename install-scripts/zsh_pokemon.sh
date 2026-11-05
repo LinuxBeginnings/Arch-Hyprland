@@ -30,9 +30,7 @@ printf "${NOTE} Removing any traces of ${SKY_BLUE}Pokemon Color Scripts${RESET}\
 
 # Install Pokemon Color Scripts
 printf "${NOTE} Installing ${SKY_BLUE}Pokemon Color Scripts${RESET}\n"
-for pok in "pokemon-colorscripts-git"; do
-  install_package_f "$pok" "$LOG"
-done
+install_package_f "pokemon-colorscripts-git" "$LOG"
 
 printf "\n%.0s" {1..1}
 # Check if ~/.zshrc exists
@@ -43,4 +41,8 @@ else
     echo "$HOME/.zshrc not found. Cant enable ${YELLOW}Pokemon color scripts${RESET}" >> "$LOG" 2>&1
 fi
   
+if [ -f "$HOME/.zshrc" ] && ! grep -q '^pokemon-colorscripts --no-title' "$HOME/.zshrc"; then
+  echo "${WARN} Could not enable pokemon-colorscripts in ~/.zshrc. Edit the fastfetch line manually." | tee -a "$LOG"
+fi
+
 printf "\n%.0s" {1..2}

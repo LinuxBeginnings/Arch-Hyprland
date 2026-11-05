@@ -27,16 +27,27 @@ fi
 LOG="Install-Logs/install-$(date +%d-%H%M%S)_input.log"
 
 # Check if the 'input' group exists
-if grep -q '^input:' /etc/group; then
+if getent group input >/dev/null 2>&1; then
     echo "${OK} ${MAGENTA}input${RESET} group exists."
 else
     echo "${NOTE} ${MAGENTA}input${RESET} group doesn't exist. Creating ${MAGENTA}input${RESET} group..."
-    sudo groupadd input
-    echo "${MAGENTA}input${RESET} group created" >> "$LOG"
+    if ! sudo groupadd input; then
+        echo "${ERROR} Could not create the input group." | tee -a "$LOG"
+        exit 1
+    fi
+    echo "${MAGENTA}input${RESET} group created" | tee -a "$LOG"
 fi
 
-# Add the user to the 'input' group
-sudo usermod -aG input "$(whoami)"
-echo "${OK} ${YELLOW}user${RESET} added to the ${MAGENTA}input${RESET} group. Changes will take effect after you log out and log back in." >> "$LOG"
+# Add the user to the 'input' group only if they are not a member yet
+current_user="$(id -un)"
+if id -nG "$current_user" | tr ' ' '\n' | grep -qx input; then
+    echo "${NOTE} ${YELLOW}$current_user${RESET} is already in the ${MAGENTA}input${RESET} group. Nothing to do."
+else
+    if ! sudo usermod -aG input "$current_user"; then
+        echo "${ERROR} Failed to add $current_user to the input group." | tee -a "$LOG"
+        exit 1
+    fi
+    echo "${OK} ${YELLOW}$current_user${RESET} added to the ${MAGENTA}input${RESET} group. Changes take effect after you log out and log back in." | tee -a "$LOG"
+fi
 
 printf "\n%.0s" {1..2}

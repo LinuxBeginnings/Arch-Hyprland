@@ -35,15 +35,27 @@ LOG="Install-Logs/install-$(date +%d-%H%M%S)_rog.log"
 
 ### Install software for Asus ROG laptops ###
 
-printf " Installing ${SKY_BLUE}ASUS ROG packages${RESET}...\n"
+printf "${NOTE} Installing ${SKY_BLUE}ASUS ROG packages${RESET}...\n"
 for ASUS in "${rog[@]}"; do
-install_package  "$ASUS" "$LOG"
+  install_package "$ASUS" "$LOG"
 done
 
-printf " Activating ROG services...\n"
-sudo systemctl enable supergfxd 2>&1 | tee -a "$LOG"
+# TLP and power-profiles-daemon fight over the same power settings
+if systemctl is-active --quiet tlp 2>/dev/null; then
+  warn "tlp is active and conflicts with power-profiles-daemon. Disable tlp if power profiles misbehave."
+fi
 
-printf " enabling power-profiles-daemon...\n"
-sudo systemctl enable power-profiles-daemon 2>&1 | tee -a "$LOG"
+printf "${NOTE} Activating ROG services...\n"
+for unit in supergfxd.service power-profiles-daemon.service; do
+  if ! systemctl list-unit-files "$unit" 2>/dev/null | grep -q "^$unit"; then
+    warn "$unit was not found; skipping."
+    continue
+  fi
+  if sudo systemctl enable --now "$unit" 2>&1 | tee -a "$LOG"; then
+    echo "${OK} $unit enabled."
+  else
+    warn "Could not enable $unit. Check $LOG."
+  fi
+done
 
 printf "\n%.0s" {1..2}

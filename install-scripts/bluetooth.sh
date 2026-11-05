@@ -38,7 +38,15 @@ printf "${NOTE} Installing ${SKY_BLUE}Bluetooth${RESET} Packages...\n"
    install_package "$BLUE" "$LOG"
   done
 
-printf " Activating ${YELLOW}Bluetooth${RESET} Services...\n"
-sudo systemctl enable --now bluetooth.service 2>&1 | tee -a "$LOG"
+printf "${NOTE} Activating ${YELLOW}Bluetooth${RESET} Services...\n"
+if systemctl list-unit-files bluetooth.service 2>/dev/null | grep -q '^bluetooth.service'; then
+  if sudo systemctl enable --now bluetooth.service 2>&1 | tee -a "$LOG"; then
+    echo "${OK} bluetooth.service enabled and started."
+  else
+    warn "Could not enable bluetooth.service. Check $LOG."
+  fi
+else
+  warn "bluetooth.service was not found; bluez may not be installed correctly."
+fi
 
 printf "\n%.0s" {1..2}

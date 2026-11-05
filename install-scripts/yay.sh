@@ -12,17 +12,21 @@
 pkg="yay-bin"
 
 ## WARNING: DO NOT EDIT BEYOND THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING! ##
-# Set the name of the log file to include the current date and time
-LOG="install-$(date +%d-%H%M%S)_yay.log"
+# Catch failures inside `cmd | tee` pipelines
+set -o pipefail
 
 # Shared color definitions
 # shellcheck source=colours.sh
 source "$(dirname "$(readlink -f "$0")")/colours.sh"
 
 # Create Directory for Install Logs
-if [ ! -d Install-Logs ]; then
-    mkdir Install-Logs
+if ! mkdir -p Install-Logs; then
+    printf '%s Could not create Install-Logs.\n' "$ERROR"
+    exit 1
 fi
+
+# Set the name of the log file to include the current date and time
+LOG="Install-Logs/install-$(date +%d-%H%M%S)_yay.log"
 
 # Check for AUR helper and install if not found
 ISAUR=$(command -v yay || command -v paru)
@@ -35,7 +39,7 @@ else
 if [ -d "$pkg" ]; then
     rm -rf "$pkg"
 fi
-  git clone https://aur.archlinux.org/$pkg.git || { printf "%s - Failed to clone ${YELLOW}$pkg${RESET} from AUR\n" "${ERROR}"; exit 1; }
+  git clone "https://aur.archlinux.org/$pkg.git" || { printf "%s - Failed to clone ${YELLOW}$pkg${RESET} from AUR\n" "${ERROR}"; exit 1; }
   cd "$pkg" || { printf "%s - Failed to enter $pkg directory\n" "${ERROR}"; exit 1; }
   makepkg -si --noconfirm 2>&1 | tee -a "$LOG" || { printf "%s - Failed to install ${YELLOW}$pkg${RESET} from AUR\n" "${ERROR}"; exit 1; }
 
