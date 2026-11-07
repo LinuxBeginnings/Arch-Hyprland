@@ -31,6 +31,10 @@
     - Installs `install-scripts/ags.sh`; a failure warns instead of stopping, since quickshell is already installed
 
 - Fixed:
+  - Install script logs are anchored to the Arch-Hyprland directory
+    - `dotfiles-main.sh` wrote to a relative path after entering the dotfiles clone, so reruns could not stash or pull and `copy.sh` never ran
+    - `paru.sh` and `yay.sh` did the same when building the AUR helper, and `pipefail` turned the failed log write into a failed install
+    - `gtk_themes.sh` lost its error log lines once it entered the themes clone
   - Package failures are reported instead of silently ignored
     - Failed packages are recorded in `Install-Logs/.failed-packages`
     - `install.sh` prints a summary of what failed and exits non-zero

@@ -28,7 +28,9 @@ fi
 
 
 # Set the name of the log file to include the current date and time
-LOG="Install-Logs/install-$(date +%d-%H%M%S)_themes.log"
+LOG_DIR="$PARENT_DIR/Install-Logs"
+mkdir -p "$LOG_DIR"
+LOG="$LOG_DIR/install-$(date +%d-%H%M%S)_themes.log"
 
 
 # installing engine needed for gtk themes

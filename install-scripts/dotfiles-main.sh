@@ -25,7 +25,7 @@ if ! source "$(dirname "$(readlink -f "$0")")/Global_functions.sh"; then
 fi
 
 # Set the name of the log file to include the current date and time
-LOG="Install-Logs/install-$(date +%d-%H%M%S)_dotfiles.log"
+LOG="$PARENT_DIR/Install-Logs/install-$(date +%d-%H%M%S)_dotfiles.log"
 DOTS_DIR="$PARENT_DIR/Hyprland-Dots"
 
 section "KooL Hyprland dotfiles"
