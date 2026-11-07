@@ -19,14 +19,16 @@ set -o pipefail
 # shellcheck source=colours.sh
 source "$(dirname "$(readlink -f "$0")")/colours.sh"
 
-# Create Directory for Install Logs
-if ! mkdir -p Install-Logs; then
+# Create Directory for Install Logs, anchored to the repo so a later cd cannot
+# strand the redirect in a directory without Install-Logs
+LOG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/Install-Logs"
+if ! mkdir -p "$LOG_DIR"; then
     printf '%s Could not create Install-Logs.\n' "$ERROR"
     exit 1
 fi
 
 # Set the name of the log file to include the current date and time
-LOG="Install-Logs/install-$(date +%d-%H%M%S)_paru.log"
+LOG="$LOG_DIR/install-$(date +%d-%H%M%S)_paru.log"
 
 # Check for AUR helper and install if not found
 ISAUR=$(command -v yay || command -v paru)
