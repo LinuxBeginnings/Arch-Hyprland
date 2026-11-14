@@ -16,7 +16,10 @@ packages=(
   qt5-declarative
   qt5-quickcontrols2
   qt6-declarative
+<<<<<<< HEAD
   quickshell
+=======
+>>>>>>> d670bd4 (Added qalculate-gtk to replace rofi calc)
   rofi
   imagemagick
   swaync
@@ -34,8 +37,23 @@ packages=(
   hyprland
   hyprland-guiutils
   lua
+  qalculate-gtk
   yazi
   nwg-dock-hyprland
+  # core tools the dotfiles keybinds and scripts call directly
+  bc
+  brightnessctl
+  curl
+  grim
+  hyprpolkitagent
+  hyprsunset
+  jq
+  network-manager-applet
+  pamixer
+  pavucontrol
+  playerctl
+  slurp
+  swappy
 )
 
 # Local packages that should be in /usr/local/bin/
@@ -219,5 +237,13 @@ if systemctl --user list-unit-files 2>/dev/null | grep -q '^hyprpolkitagent\.ser
   fi
 fi
 
+<<<<<<< HEAD
 # Non-zero when essentials are missing, so update-deps.sh can surface it
 exit "$check_failed"
+=======
+# Signal failure so update-deps.sh and CI can see that essentials are missing
+if [ ${#missing[@]} -ne 0 ] || [ ${#local_missing[@]} -ne 0 ]; then
+  exit 1
+fi
+exit 0
+>>>>>>> d670bd4 (Added qalculate-gtk to replace rofi calc)

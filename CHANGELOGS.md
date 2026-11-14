@@ -3,6 +3,7 @@
 ## Nov 2026
 
 - Added:
+<<<<<<< HEAD
   - `install.sh --dry-run`
     - Prints the options it would use and the scripts it would run
     - Installs, removes and writes nothing, not even a log file
@@ -64,6 +65,19 @@
   - `dotfiles-main.sh`, `gtk_themes.sh`, `paru.sh`, `yay.sh` now check `cd` before using the new directory
   - `quickshell.sh` and `ags.sh` removed unused preset code calling an undefined function
   - `README.md` rofi troubleshooting note now matches what the installer installs
+=======
+  - `qalculate-gtk` added to final check script
+    - Required by `rofi-calc` (default keybind `SUPER ALT C`)
+  - Core keybind/script dependencies added to final check
+    - `bc`, `brightnessctl`, `curl`, `grim`, `slurp`, `swappy`, `jq`, `pamixer`, `pavucontrol`, `playerctl`, `network-manager-applet`, `hyprpolkitagent`, `hyprsunset`
+  - `hyprsunset` and `hyprland-guiutils` added to the uninstall menu
+- Fixed:
+  - Final check tests `rofi` instead of the removed `rofi-wayland` package
+    - The old entry reported a missing package on every install
+  - `uninstall.sh` removes `rofi` (was still listing `rofi-wayland`)
+  - Final check exits with status 1 when essential packages are missing
+    - `update-deps.sh` summary now reflects the failure
+>>>>>>> d670bd4 (Added qalculate-gtk to replace rofi calc)
 
 ## Oct 2026
 
